@@ -38,6 +38,78 @@
         <!-- <template #draginfo="draginfo"> {{ selectedNodesTitle }} </template> -->
       </sl-vue-tree-next>
     </div>
+    <context-menu v-model:show="menuVisible" :options="optionsComponent">
+      <context-menu-item
+        label="新建文章"
+        :clickClose="false"
+        @click="showItem = !showItem"
+      >
+        <template #icon>
+          <font-awesome-icon :icon="['fas', 'square-pen']" />
+        </template>
+      </context-menu-item>
+      <context-menu-item
+        label="新建草稿"
+        :clickClose="false"
+        @click="showItem = !showItem"
+      >
+        <template #icon>
+          <font-awesome-icon :icon="['fas', 'pen-ruler']" />
+        </template>
+      </context-menu-item>
+
+      <context-menu-sperator />
+
+      <context-menu-group label="新建">
+        <context-menu-item
+          label="文件夹"
+          :clickClose="false"
+          @click="showItem = !showItem"
+        >
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'folder']" />
+          </template>
+        </context-menu-item>
+        <context-menu-item
+          label="文件"
+          :clickClose="false"
+          @click="showItem = !showItem"
+        >
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'file']" />
+          </template>
+        </context-menu-item>
+      </context-menu-group>
+
+      <context-menu-sperator />
+
+      <context-menu-item
+        label="重命名"
+        :clickClose="false"
+        @click="showItem = !showItem"
+      >
+        <template #icon>
+          <font-awesome-icon :icon="['fas', 'i-cursor']" />
+        </template>
+      </context-menu-item>
+      <context-menu-item
+        label="复制"
+        :clickClose="false"
+        @click="showItem = !showItem"
+      >
+        <template #icon>
+          <font-awesome-icon :icon="['fas', 'copy']" /> </template
+      ></context-menu-item>
+      <context-menu-item
+        label="删除"
+        :clickClose="false"
+        @click="showItem = !showItem"
+      >
+        <template #icon>
+          <font-awesome-icon :icon="['fas', 'trash']" />
+        </template>
+      </context-menu-item>
+    </context-menu>
   </div>
 </template>
 
@@ -49,20 +121,51 @@ import {
   faFile,
   faChevronDown,
   faChevronRight,
+  faSquarePen,
+  faPenRuler,
+  faICursor,
+  faTrash,
+  faCopy,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { defineProps } from "vue";
+import { defineProps, nextTick } from "vue";
 import { SlVueTreeNext } from "sl-vue-tree-next";
 import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
 
 import { ref, onMounted } from "vue";
 import { getFilesTree, openFile } from "@/utils/fileOperation";
 import EventBus from "@/eventBus";
+import {
+  ContextMenu,
+  ContextMenuGroup,
+  ContextMenuSeparator,
+  ContextMenuItem,
+} from "@imengyu/vue3-context-menu";
 
 const loading = ref(false);
 
+const contextmenu = ref(null);
+
+const menuVisible = ref(false);
+const showItem = ref(true);
+const optionsComponent = ref({
+  x: 500,
+  y: 200,
+});
+
 // 添加你需要的图标
-library.add(faChevronDown, faChevronRight, faFolder, faFolderOpen, faFile);
+library.add(
+  faChevronDown,
+  faChevronRight,
+  faFolder,
+  faFolderOpen,
+  faFile,
+  faSquarePen,
+  faPenRuler,
+  faICursor,
+  faTrash,
+  faCopy
+);
 
 let fileNodes = ref([]);
 
@@ -112,8 +215,19 @@ const nodeToggled = (node) => {
 };
 
 // 显示右键菜单
-const showContextMenu = (event, node) => {
-  console.log("Show context menu:", event, node);
+const showContextMenu = (node, event) => {
+  event.preventDefault();
+  // menuVisible.value = true;
+  // contextmenu.value.style.left = event.clientX + "px";
+  // contextmenu.value.style.top = event.clientY + "px";
+  // nextTick(() => {
+  //   contextmenu.value.focus(); // 使菜单获得焦点
+  // });
+  optionsComponent.value = {
+    x: event.clientX,
+    y: event.clientY,
+  };
+  menuVisible.value = true;
 };
 </script>
 
@@ -158,5 +272,36 @@ const showContextMenu = (event, node) => {
 .sl-vue-tree-next-node-item.sl-vue-tree-next-cursor-hover {
   background-color: var(--el-color-primary-light-7);
   color: var(--el-color-secondary-text);
+}
+
+.contextmenu__item {
+  display: block;
+  line-height: 34px;
+  text-align: center;
+}
+.contextmenu__item:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+.menu {
+  position: absolute;
+  background-color: #fff;
+  width: 100px;
+  /*height: 106px;*/
+  font-size: 12px;
+  color: #444040;
+  border-radius: 4px;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+  white-space: nowrap;
+  z-index: 1000;
+}
+.contextmenu__item:hover {
+  cursor: pointer;
+  background: #66b1ff;
+  border-color: #66b1ff;
+  color: #fff;
 }
 </style>
