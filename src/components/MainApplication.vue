@@ -7,18 +7,7 @@ import FileTree from "./FileTree.vue";
 import WorkSpace from "./WorkSpace.vue";
 import StatusBar from "./StatusBar.vue";
 import DiffManager from "./DiffManager.vue";
-
-import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faFileShield,
-  faFile,
-  faMagnifyingGlass,
-  faCodeBranch,
-  faGear,
-} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-
-library.add(faFileShield, faFile, faMagnifyingGlass, faCodeBranch, faGear);
 
 const leftPaneSize = ref(20);
 const activeMenu = ref("files");

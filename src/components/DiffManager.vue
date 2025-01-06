@@ -3,23 +3,12 @@ import { ref, onMounted } from "vue";
 import { ElButton, ElInput } from "element-plus";
 import { getDiffFiles } from "@/utils/fileOperation";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faU,
-  faN,
-  faD,
-  faRotateLeft,
-  faArrowsRotate,
-} from "@fortawesome/free-solid-svg-icons";
 import { deleteFile, openFile } from "@/utils/fileOperation";
 import githubApi from "@/utils/githubApi";
-
-library.add(faU, faN, faD, faRotateLeft, faArrowsRotate);
 
 const loading = ref(false);
 const isRotating = ref(false);
 const messageInput = ref("");
-
 const diff_files = ref([]);
 
 onMounted(() => {

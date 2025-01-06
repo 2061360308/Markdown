@@ -1,18 +1,8 @@
 <script setup>
 import { ref } from "vue";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faFileShield,
-  faWonSign,
-  faCircleCheck,
-  faCircleExclamation,
-  faFloppyDisk,
-} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 import EventBus from "@/eventBus";
-
-library.add(faFileShield, faWonSign, faCircleCheck, faCircleExclamation, faFloppyDisk);
 
 const changesFlag = ref(false);
 const lastSaveTime = ref('');

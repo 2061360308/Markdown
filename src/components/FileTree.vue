@@ -114,19 +114,6 @@
 </template>
 
 <script setup>
-import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faFolder,
-  faFolderOpen,
-  faFile,
-  faChevronDown,
-  faChevronRight,
-  faSquarePen,
-  faPenRuler,
-  faICursor,
-  faTrash,
-  faCopy,
-} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { defineProps, nextTick } from "vue";
 import { SlVueTreeNext } from "sl-vue-tree-next";
@@ -152,20 +139,6 @@ const optionsComponent = ref({
   x: 500,
   y: 200,
 });
-
-// 添加你需要的图标
-library.add(
-  faChevronDown,
-  faChevronRight,
-  faFolder,
-  faFolderOpen,
-  faFile,
-  faSquarePen,
-  faPenRuler,
-  faICursor,
-  faTrash,
-  faCopy
-);
 
 let fileNodes = ref([]);
 

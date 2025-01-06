@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "element-plus/dist/index.css";
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
+import fontAwesomeLibrary from "./utils/fontAwesomeLibrary";
 
 // 读取配置文件
 const loadConfig = async (app) => {
