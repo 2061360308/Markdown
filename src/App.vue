@@ -6,6 +6,8 @@ import { encryptToken, decryptToken } from "./utils/encryptToken";
 import { testToken, createOctokit } from "./utils/githubApi";
 import MainApplication from "./components/MainApplication.vue";
 
+import api from "@/utils/githubFs/api";
+
 const config = ref({});
 
 const password = ref("");
@@ -99,14 +101,21 @@ const genderNewToken = () => {
 };
 
 const login = async () => {
+  console.log("login");
   let result = decryptToken(appContext.config.globalProperties.$globalConfig.value.token, password.value);
 
   let test_result = await testToken(result);
   if (test_result) {
-    appContext.config.globalProperties.$globalConfig.value.token_decrypt = result;
-    config.value = true;
     console.log("保存的值", appContext.config.globalProperties.$globalConfig.value);
-    createOctokit(appContext.config.globalProperties.$globalConfig.value);
+
+    let owner = appContext.config.globalProperties.$globalConfig.value.owner;
+    let repo = appContext.config.globalProperties.$globalConfig.value.repo;
+    let token = result;
+    api.init(owner, repo, token).then(() => {
+      console.log("初始化成功", {owner, repo, token});
+      config.value = true;
+      appContext.config.globalProperties.$globalConfig.value.token_decrypt = result;
+    });
   } else {
     ElMessage({
       type: "error",

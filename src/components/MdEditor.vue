@@ -15,6 +15,8 @@ import { openFile } from "@/utils/fileOperation";
 import { ElMessage } from "element-plus";
 import { updateFile } from "@/utils/fileOperation";
 
+import fs from "@/utils/githubFs/fs";
+
 const props = defineProps({
   // 编辑器名称/id
   editor: {
@@ -96,7 +98,10 @@ const createVditorInstance = () => {
         // 确保 vditorInstance 完全初始化后再进行操作
 
         // 读取文件内容并设置到编辑器中
-        openFile(props.path).then((content) => {
+        // openFile(props.path).then((content) => {
+        //   vditorInstance.setValue(content, true);
+        // });
+        fs.read(props.path).then((content) => {
           vditorInstance.setValue(content, true);
         });
 
@@ -140,7 +145,15 @@ const saveFile = () => {
   console.log("saveFile");
   const file_path = props.path;
   const file_content = vditorInstance.getValue();
-  updateFile(file_path, file_content).then(() => {
+  // updateFile(file_path, file_content).then(() => {
+  //   EventBus.emit("file-saved");
+  //   ElMessage({
+  //     message: "文章保存成功",
+  //     grouping: true,
+  //     type: "success",
+  //   });
+  // });
+  fs.write(file_path, file_content).then(() => {
     EventBus.emit("file-saved");
     ElMessage({
       message: "文章保存成功",

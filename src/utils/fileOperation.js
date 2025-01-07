@@ -1,7 +1,6 @@
 // 对文件的操作
 import dbManager from "./dbManager";
 import githubApi from "./githubApi";
-
 export const openFile = async (path) => {
   let file = await dbManager.getFile(path);
   if (file) {

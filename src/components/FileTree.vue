@@ -1,3 +1,184 @@
+<script setup>
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { SlVueTreeNext } from "sl-vue-tree-next";
+import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
+
+import { ref, onMounted } from "vue";
+import EventBus from "@/eventBus";
+import {
+  ContextMenu,
+  ContextMenuGroup,
+  ContextMenuSeparator,
+  ContextMenuItem,
+} from "@imengyu/vue3-context-menu";
+
+import fs from "@/utils/githubFs/fs";
+
+const loading = ref(false);
+
+const contextmenu = ref(null);
+
+let current_clicked_node = null;
+
+const menuVisible = ref(false);
+const showItem = ref(true);
+const optionsComponent = ref({
+  x: 500,
+  y: 200,
+});
+
+let fileNodes = ref([]);
+
+// 转换 GitHub API 返回的文件目录树为所需格式
+const transformTree = (tree) => {
+  const result = [];
+  const pathMap = {};
+
+  tree.forEach((item) => {
+    const parts = item.path.split("/");
+    let currentLevel = result;
+
+    parts.forEach((part, index) => {
+      const currentPath = parts.slice(0, index + 1).join("/");
+      const existingPath = pathMap[currentPath];
+
+      if (existingPath) {
+        currentLevel = existingPath.children;
+      } else {
+        const newItem = {
+          title: part,
+          isLeaf: item.type === "blob",
+          isExpanded: false,
+          data: {
+            path: item.path,
+            mode: item.mode,
+            type: item.type,
+            size: item.size,
+            sha: item.sha,
+          },
+          children: [],
+        };
+
+        currentLevel.push(newItem);
+        pathMap[currentPath] = newItem;
+
+        if (item.type === "tree") {
+          currentLevel = newItem.children;
+        }
+      }
+    });
+  });
+
+  // 排序函数，将文件夹放在前面，并按字母顺序排序
+  const sortItems = (items) => {
+    items.sort((a, b) => {
+      if (a.isLeaf === b.isLeaf) {
+        return a.title.localeCompare(b.title);
+      }
+      return a.isLeaf ? 1 : -1;
+    });
+
+    items.forEach((item) => {
+      if (!item.isLeaf && item.children.length > 0) {
+        sortItems(item.children);
+      }
+    });
+  };
+
+  sortItems(result);
+
+  return result;
+};
+
+// 更新目录树
+const updateTree = () => {
+  loading.value = true;
+  fs.list().then(async (res) => {
+    // 拿到的数据要将本地标记为删除的文件删除
+    let deletedFiles = await fs.getDeletedFiles();
+    console.log("deletedFiles:", deletedFiles);
+    res = res.filter((item) => deletedFiles.indexOf(item.path) === -1);
+    let tree = transformTree(res);
+    console.log("tree:", tree);
+    fileNodes.value = tree;
+    loading.value = false;
+  });
+};
+
+EventBus.on("treeUpdate", updateTree);
+
+onMounted(() => {
+  updateTree();
+});
+
+// 更新 fileNodes 的方法
+const updateFileNodes = (newNodes) => {
+  //   props.fileNodes = newNodes;
+};
+
+// 节点选择事件处理函数
+const nodeSelected = (selectedNodes) => {
+  let node;
+  if (selectedNodes.length < 0) {
+    return;
+  } else {
+    node = selectedNodes[0];
+  }
+
+  if (node.isLeaf) {
+    console.log("Node selected:", node);
+    let path = node.data.path;
+    // 获取后缀名
+    let suffix = path.substring(path.lastIndexOf(".") + 1);
+    if (suffix === "md") {
+      EventBus.emit("openMdFile", node.data.path);
+    } else {
+      EventBus.emit("openFile", node.data.path);
+    }
+  }
+};
+
+// 节点拖拽事件处理函数
+const nodeDropped = (event) => {
+  console.log("Node dropped:", event);
+};
+
+// 节点展开/折叠事件处理函数
+const nodeToggled = (node) => {
+  console.log("Node toggled:", node);
+};
+
+// 显示右键菜单
+const showContextMenu = (node, event) => {
+  console.log("showContextMenu:", node);
+  current_clicked_node = node;
+  event.preventDefault();
+  // menuVisible.value = true;
+  // contextmenu.value.style.left = event.clientX + "px";
+  // contextmenu.value.style.top = event.clientY + "px";
+  // nextTick(() => {
+  //   contextmenu.value.focus(); // 使菜单获得焦点
+  // });
+  optionsComponent.value = {
+    x: event.clientX,
+    y: event.clientY,
+  };
+  menuVisible.value = true;
+};
+
+// 删除文件
+const deleteFile = (e) => {
+  console.log("删除文件", e);
+  let path = current_clicked_node.data.path;
+  console.log("path:", path);
+  fs.remove(path).then(() => {
+    console.log("删除文件成功");
+    menuVisible.value = false;
+  });
+  updateTree();
+};
+</script>
+
 <template>
   <div class="file-tree-box" v-loading="loading">
     <div class="title">文件管理器</div>
@@ -58,7 +239,7 @@
         </template>
       </context-menu-item>
 
-      <context-menu-sperator />
+      <ContextMenuSeparator />
 
       <context-menu-group label="新建">
         <context-menu-item
@@ -81,7 +262,7 @@
         </context-menu-item>
       </context-menu-group>
 
-      <context-menu-sperator />
+      <ContextMenuSeparator />
 
       <context-menu-item
         label="重命名"
@@ -100,11 +281,7 @@
         <template #icon>
           <font-awesome-icon :icon="['fas', 'copy']" /> </template
       ></context-menu-item>
-      <context-menu-item
-        label="删除"
-        :clickClose="false"
-        @click="showItem = !showItem"
-      >
+      <context-menu-item label="删除" :clickClose="false" @click="deleteFile">
         <template #icon>
           <font-awesome-icon :icon="['fas', 'trash']" />
         </template>
@@ -112,97 +289,6 @@
     </context-menu>
   </div>
 </template>
-
-<script setup>
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { defineProps, nextTick } from "vue";
-import { SlVueTreeNext } from "sl-vue-tree-next";
-import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
-
-import { ref, onMounted } from "vue";
-import { getFilesTree, openFile } from "@/utils/fileOperation";
-import EventBus from "@/eventBus";
-import {
-  ContextMenu,
-  ContextMenuGroup,
-  ContextMenuSeparator,
-  ContextMenuItem,
-} from "@imengyu/vue3-context-menu";
-
-const loading = ref(false);
-
-const contextmenu = ref(null);
-
-const menuVisible = ref(false);
-const showItem = ref(true);
-const optionsComponent = ref({
-  x: 500,
-  y: 200,
-});
-
-let fileNodes = ref([]);
-
-onMounted(() => {
-  loading.value = true;
-  getFilesTree().then((tree) => {
-    fileNodes.value = tree;
-    loading.value = false;
-  });
-});
-
-// 更新 fileNodes 的方法
-const updateFileNodes = (newNodes) => {
-  //   props.fileNodes = newNodes;
-};
-
-// 节点选择事件处理函数
-const nodeSelected = (selectedNodes) => {
-  let node;
-  if (selectedNodes.length < 0) {
-    return;
-  } else {
-    node = selectedNodes[0];
-  }
-
-  if (node.isLeaf) {
-    console.log("Node selected:", node);
-    let path = node.data.path;
-    // 获取后缀名
-    let suffix = path.substring(path.lastIndexOf(".") + 1);
-    if (suffix === "md") {
-      EventBus.emit("openMdFile", node.data.path);
-    } else {
-      EventBus.emit("openFile", node.data.path);
-    }
-  }
-};
-
-// 节点拖拽事件处理函数
-const nodeDropped = (event) => {
-  console.log("Node dropped:", event);
-};
-
-// 节点展开/折叠事件处理函数
-const nodeToggled = (node) => {
-  console.log("Node toggled:", node);
-};
-
-// 显示右键菜单
-const showContextMenu = (node, event) => {
-  event.preventDefault();
-  // menuVisible.value = true;
-  // contextmenu.value.style.left = event.clientX + "px";
-  // contextmenu.value.style.top = event.clientY + "px";
-  // nextTick(() => {
-  //   contextmenu.value.focus(); // 使菜单获得焦点
-  // });
-  optionsComponent.value = {
-    x: event.clientX,
-    y: event.clientY,
-  };
-  menuVisible.value = true;
-};
-</script>
 
 <style>
 .file-tree-box {

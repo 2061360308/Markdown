@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { ElButton, ElInput } from "element-plus";
-import { getDiffFiles } from "@/utils/fileOperation";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { deleteFile, openFile } from "@/utils/fileOperation";
-import githubApi from "@/utils/githubApi";
+
+import fs from "@/utils/githubFs/fs";
 
 const loading = ref(false);
 const isRotating = ref(false);
@@ -17,7 +17,7 @@ onMounted(() => {
 
 const refreshDiffData = async () => {
   loading.value = true;
-  let files = await getDiffFiles();
+  let files = await fs.getDiffFiles();
   diff_files.value = files;
   loading.value = false;
 
@@ -111,7 +111,7 @@ const undo = (file) => {
   )
     .then(() => {
       file.forEach((f) => {
-        deleteFile(f);
+        fs.unRemove(f);
       });
       refreshDiffData();
       ElMessage({
@@ -119,7 +119,8 @@ const undo = (file) => {
         message: "Delete completed",
       });
     })
-    .catch(() => {
+    .catch((error) => {
+      console.log(error);
       ElMessage({
         type: "info",
         message: "Delete canceled",
@@ -142,7 +143,7 @@ const commit = async () => {
   const files = [];
   for (const file of diff_files.value) {
     const filePath = file[0];
-    const fileContent = await openFile(filePath);
+    const fileContent = await fs.read(filePath);
     files.push({ path: filePath, content: fileContent });
   }
 
