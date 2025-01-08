@@ -1,0 +1,6 @@
+[build]
+  command = "npm install pnpm && npm install -g vite && pnpm install && pnpm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18.12.0"
