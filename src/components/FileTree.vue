@@ -3,7 +3,10 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { SlVueTreeNext } from "sl-vue-tree-next";
 import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
 
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick } from "vue";
+
+import { ElSelect, ElOption } from "element-plus";
+
 import EventBus from "@/eventBus";
 import {
   ContextMenu,
@@ -13,12 +16,19 @@ import {
 } from "@imengyu/vue3-context-menu";
 
 import fs from "@/utils/githubFs/fs";
+import api from "@/utils/githubFs/api";
 
 const loading = ref(false);
 
-const contextmenu = ref(null);
-
 let current_clicked_node = null;
+
+const dialogCreateFileVisible = ref(false); // 创建文件的对话框
+
+const createFileValue = ref({
+  fileName: "",
+  createFolder: "",
+  type: "file",
+});
 
 const menuVisible = ref(false);
 const showItem = ref(true);
@@ -27,10 +37,17 @@ const optionsComponent = ref({
   y: 200,
 });
 
-let fileNodes = ref([]);
+const selectTreeType = ref("remote");
+const treeTypes = ref([
+  { label: "混合显示文件树", value: "mixed" },
+  { label: "本地缓存文件树(扁平)", value: "local" },
+  { label: "远程Github文件树(只读)", value: "remote" },
+]);
+
+let fileTree = ref([]);
 
 // 转换 GitHub API 返回的文件目录树为所需格式
-const transformTree = (tree) => {
+const transformRemoteTree = (tree) => {
   const result = [];
   const pathMap = {};
 
@@ -90,31 +107,98 @@ const transformTree = (tree) => {
   return result;
 };
 
-// 更新目录树
-const updateTree = () => {
-  loading.value = true;
-  fs.list().then(async (res) => {
-    // 拿到的数据要将本地标记为删除的文件删除
-    let deletedFiles = await fs.getDeletedFiles();
-    console.log("deletedFiles:", deletedFiles);
-    res = res.filter((item) => deletedFiles.indexOf(item.path) === -1);
-    let tree = transformTree(res);
-    console.log("tree:", tree);
-    fileNodes.value = tree;
-    loading.value = false;
+const transformLocalTree = (tree) => {
+  const result = [];
+
+  tree.forEach((item) => {
+    result.push({
+      title: item,
+      isLeaf: true,
+      isExpanded: false,
+      data: {
+        path: item,
+      },
+      children: [],
+    });
   });
+  return result;
 };
 
-EventBus.on("treeUpdate", updateTree);
+const mixTree = (local, remote) => {
+  const pathMap = {};
+
+  remote.forEach((item) => {
+    pathMap[item.data.path] = item;
+    item.data.posititon = "remote";
+  });
+
+  local.forEach((item) => {
+    if (pathMap[item.data.path]) {
+      // 如果本地和远程同时有一个项目则按本地的算
+      const remoteItem = pathMap[item.data.path];
+      remoteItem.title = item.title;
+      remoteItem.isLeaf = item.isLeaf;
+      remoteItem.data = item.data;
+      remoteItem.children = mixTree(remoteItem.children, item.children);
+    } else {
+      pathMap[item.data.path] = item;
+      item.data.posititon = "local";
+      remote.push(item);
+    }
+  });
+
+  const sortItems = (items) => {
+    items.sort((a, b) => {
+      if (a.isLeaf === b.isLeaf) {
+        return a.title.localeCompare(b.title);
+      }
+      return a.isLeaf ? 1 : -1;
+    });
+
+    items.forEach((item) => {
+      if (!item.isLeaf && item.children.length > 0) {
+        sortItems(item.children);
+      }
+    });
+  };
+
+  sortItems(remote);
+
+  return remote;
+};
+
+// 更新目录树
+const updateTree = async () => {
+  loading.value = true;
+  if (selectTreeType.value === "remote") {
+    api.getRepoTree().then((res) => {
+      let tree = transformRemoteTree(res.tree);
+      fileTree.value = tree;
+      loading.value = false;
+    });
+  } else if (selectTreeType.value === "local") {
+    fs.list().then(async (res) => {
+      let tree = transformLocalTree(res);
+      fileTree.value = tree;
+      loading.value = false;
+    });
+  } else {
+    let remote = await api.getRepoTree();
+    let remote_tree = transformRemoteTree(remote.tree);
+    console.log("local", remote_tree);
+    let local = await fs.list();
+    let local_tree = transformLocalTree(local);
+    console.log("local", local_tree);
+    let mixed_tree = await mixTree(local_tree, remote_tree);
+    console.log("mixed", mixed_tree);
+    fileTree.value = mixed_tree;
+    loading.value = false;
+  }
+};
 
 onMounted(() => {
   updateTree();
 });
-
-// 更新 fileNodes 的方法
-const updateFileNodes = (newNodes) => {
-  //   props.fileNodes = newNodes;
-};
 
 // 节点选择事件处理函数
 const nodeSelected = (selectedNodes) => {
@@ -126,15 +210,18 @@ const nodeSelected = (selectedNodes) => {
   }
 
   if (node.isLeaf) {
-    console.log("Node selected:", node);
     let path = node.data.path;
-    // 获取后缀名
-    let suffix = path.substring(path.lastIndexOf(".") + 1);
-    if (suffix === "md") {
-      EventBus.emit("openMdFile", node.data.path);
-    } else {
-      EventBus.emit("openFile", node.data.path);
-    }
+    openFile(path);
+  }
+};
+
+const openFile = (path) => {
+  // 获取后缀名
+  let suffix = path.substring(path.lastIndexOf(".") + 1);
+  if (suffix === "md") {
+    EventBus.emit("openMdFile", path);
+  } else {
+    EventBus.emit("openFile", path);
   }
 };
 
@@ -150,15 +237,13 @@ const nodeToggled = (node) => {
 
 // 显示右键菜单
 const showContextMenu = (node, event) => {
+  // 只在混合模式下允许创建，删除，重命名等操作
+  if (selectTreeType.value !== "mixed") {
+    return;
+  }
   console.log("showContextMenu:", node);
   current_clicked_node = node;
   event.preventDefault();
-  // menuVisible.value = true;
-  // contextmenu.value.style.left = event.clientX + "px";
-  // contextmenu.value.style.top = event.clientY + "px";
-  // nextTick(() => {
-  //   contextmenu.value.focus(); // 使菜单获得焦点
-  // });
   optionsComponent.value = {
     x: event.clientX,
     y: event.clientY,
@@ -168,23 +253,176 @@ const showContextMenu = (node, event) => {
 
 // 删除文件
 const deleteFile = (e) => {
-  console.log("删除文件", e);
-  let path = current_clicked_node.data.path;
-  console.log("path:", path);
-  fs.remove(path).then(() => {
-    console.log("删除文件成功");
-    menuVisible.value = false;
+  // Todo
+  if (current_clicked_node.data.posititon === "remote") {
+    ElMessageBox.confirm("将立即执行git提交，确定删除远程文件吗？", "Warning", {
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+      type: "warning",
+    })
+      .then(() => {
+        let message = "Delete : " + current_clicked_node.data.path;
+        let files = [{ path: current_clicked_node.data.path, content: null }];
+        loading.value = true;
+        api.commitChanges(files, message).then((res) => {
+          console.log("deleteFile", res);
+          ElMessage({
+            type: "success",
+            message: "文件已删除! 若未更新请稍后刷新页面",
+          });
+          loading.value = false;
+          updateTree();
+        });
+      })
+      .catch(() => {
+        ElMessage({
+          type: "info",
+          message: "已取消删除",
+        });
+      });
+    return;
+  } else {
+    ElMessageBox.confirm(
+      "确定删除吗？本地存储文件删除后不可恢复。",
+      "Warning",
+      {
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    )
+      .then(() => {
+        fs.delete(current_clicked_node.data.path).then((res) => {
+          console.log("deleteFile", res);
+          ElMessage({
+            type: "success",
+            message: "文件已删除!",
+          });
+          updateTree();
+        });
+      })
+      .catch(() => {
+        ElMessage({
+          type: "info",
+          message: "已取消删除",
+        });
+      });
+  }
+};
+
+const showCreateFileDialog = (e) => {
+  let create_folder;
+
+  if (current_clicked_node.data.type === "tree") {
+    create_folder = current_clicked_node.data.path;
+  } else {
+    create_folder = current_clicked_node.data.path.substring(
+      0,
+      current_clicked_node.data.path.lastIndexOf("/")
+    );
+  }
+
+  let target = e.target;
+
+  // 向上遍历 DOM 树，直到找到具有 data-type 属性的父元素
+  while (target && !target.dataset.type) {
+    target = target.parentElement;
+  }
+
+  createFileValue.value = {
+    fileName: "",
+    fileFolder: create_folder ? create_folder : "",
+    type: target.dataset.filetype,
+  };
+
+  menuVisible.value = false;
+  nextTick(() => {
+    dialogCreateFileVisible.value = true;
   });
-  updateTree();
+};
+
+const createFile = () => {
+  console.log("createFile", createFileValue.value);
+  let path =
+    createFileValue.value.fileFolder + "/" + createFileValue.value.fileName;
+  // 去除多余的斜杠
+  path = path = path
+    .replace(/\\/g, "/")
+    .replace(/\/+/g, "/")
+    .replace(/^\/|\/$/g, "");
+  // 校验非法字符
+  if (path.match(/[<>:"|?*\x00-\x1F]/)) {
+    ElMessage.error("文件路径不合法");
+    return;
+  }
+
+  let type = createFileValue.value.type;
+  if (type !== "file" && !path.endsWith(".md")) {
+    path = path + ".md";
+  }
+
+  console.log("createFile", path);
+
+  // 检查文件是否存在
+  let node = fileTree.value.find((item) => item.data.path === path);
+  if (node) {
+    ElMessage.error("文件已存在");
+    return;
+  }
+
+  let content = "";
+
+  if (createFileValue.value.type !== "file") {
+    let draft = "false";
+    if (createFileValue.value.type === "draft") {
+      draft = "true";
+    }
+    let fileNameWithExtension = path.substring(path.lastIndexOf("/") + 1);
+    // 去掉文件后缀
+    let fileName = fileNameWithExtension.substring(
+      0,
+      fileNameWithExtension.lastIndexOf(".")
+    );
+    console.log("fileName", fileName);
+    const formattedDate = new Date()
+      .toISOString()
+      .replace(/\.\d{3}Z$/, "-08:00");
+    content = `---\ntitle: ${fileName}\ndata: ${formattedDate}\ndraft: false\n---`;
+  }
+
+  fs.write(path, content).then((res) => {
+    console.log("createFile", res);
+    updateTree();
+  });
+
+  openFile(path);
+
+  dialogCreateFileVisible.value = false;
 };
 </script>
 
 <template>
   <div class="file-tree-box" v-loading="loading">
     <div class="title">文件管理器</div>
+    <el-select
+      class="select-tree-type"
+      v-model="selectTreeType"
+      collapse-tags
+      placeholder="Select"
+      popper-class="custom-header"
+      :max-collapse-tags="2"
+      @change="updateTree"
+    >
+      <el-option
+        v-for="item in treeTypes"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value"
+      />
+    </el-select>
     <div class="file-tree-inner-box">
       <sl-vue-tree-next
-        :modelValue="fileNodes"
+        :modelValue="fileTree"
         @update:modelValue="updateFileNodes"
         ref="slVueTree"
         :allow-multiselect="false"
@@ -205,64 +443,76 @@ const deleteFile = (e) => {
 
         <template #toggle="{ node }">
           <span v-if="!node.isLeaf">
-            <font-awesome-icon
-              :icon="['fas', 'chevron-down']"
+            <FontAwesomeIcon
               v-if="node.isExpanded"
+              :icon="['fas', 'chevron-down']"
             />
-            <font-awesome-icon
-              :icon="['fas', 'chevron-right']"
+            <FontAwesomeIcon
               v-if="!node.isExpanded"
+              :icon="['fas', 'fa-chevron-right']"
             />
           </span>
+        </template>
+
+        <template #content="{ node }">
+          <span class="item-icon">
+            <font-awesome-icon v-if="node.isLeaf" :icon="['fa', 'fa-file']" />
+            <font-awesome-icon v-else :icon="['fa', 'fa-folder']" />
+          </span>
+          {{ node.title }}
+        </template>
+
+        <template #sidebar="{ node }">
+          <el-tooltip
+            class="box-item"
+            effect="dark"
+            content="Github上的远程（未下载）"
+            placement="right-start"
+            v-if="node.data.posititon === 'remote'"
+          >
+            <font-awesome-icon :icon="['fab', 'github']" />
+          </el-tooltip>
         </template>
 
         <!-- <template #draginfo="draginfo"> {{ selectedNodesTitle }} </template> -->
       </sl-vue-tree-next>
     </div>
     <context-menu v-model:show="menuVisible" :options="optionsComponent">
-      <context-menu-item
-        label="新建文章"
-        :clickClose="false"
-        @click="showItem = !showItem"
-      >
-        <template #icon>
-          <font-awesome-icon :icon="['fas', 'square-pen']" />
-        </template>
-      </context-menu-item>
-      <context-menu-item
-        label="新建草稿"
-        :clickClose="false"
-        @click="showItem = !showItem"
-      >
-        <template #icon>
-          <font-awesome-icon :icon="['fas', 'pen-ruler']" />
-        </template>
-      </context-menu-item>
-
-      <ContextMenuSeparator />
-
-      <context-menu-group label="新建">
+      <context-menu-group label="新建" icon="fas fa-plus">
         <context-menu-item
-          label="文件夹"
-          :clickClose="false"
-          @click="showItem = !showItem"
+          label="新建文章"
+          :clickClose="true"
+          data-filetype="post"
+          @click="showCreateFileDialog"
         >
           <template #icon>
-            <font-awesome-icon :icon="['fas', 'folder']" />
+            <font-awesome-icon :icon="['fas', 'square-pen']" />
           </template>
         </context-menu-item>
         <context-menu-item
+          label="新建草稿"
+          :clickClose="true"
+          data-filetype="draft"
+          @click="showCreateFileDialog"
+        >
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'pen-ruler']" />
+          </template>
+        </context-menu-item>
+
+        <ContextMenuSeparator />
+
+        <context-menu-item
           label="文件"
-          :clickClose="false"
-          @click="showItem = !showItem"
+          :clickClose="true"
+          data-filetype="file"
+          @click="showCreateFileDialog"
         >
           <template #icon>
             <font-awesome-icon :icon="['fas', 'file']" />
           </template>
         </context-menu-item>
       </context-menu-group>
-
-      <ContextMenuSeparator />
 
       <context-menu-item
         label="重命名"
@@ -283,11 +533,31 @@ const deleteFile = (e) => {
       ></context-menu-item>
       <context-menu-item label="删除" :clickClose="false" @click="deleteFile">
         <template #icon>
-          <font-awesome-icon :icon="['fas', 'trash']" />
+          <font-awesome-icon
+            :icon="['fas', 'trash']"
+            style="color: var(--el-color-danger)"
+          />
         </template>
       </context-menu-item>
     </context-menu>
   </div>
+  <el-dialog v-model="dialogCreateFileVisible" title="创建文件" width="500">
+    <el-form>
+      <el-form-item label="文件名称">
+        <el-input v-model="createFileValue.fileName" autocomplete="off">
+          <template #prepend>{{
+            "根目录/" + createFileValue.fileFolder
+          }}</template>
+        </el-input>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogCreateFileVisible = false">取消</el-button>
+        <el-button type="primary" @click="createFile"> 创建 </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style>
@@ -301,6 +571,10 @@ const deleteFile = (e) => {
   padding: 10px;
   white-space: nowrap; /* 确保内容不会换行 */
   height: 40px;
+}
+
+.select-tree-type {
+  width: 100%;
 }
 
 .file-tree-inner-box {
@@ -331,6 +605,10 @@ const deleteFile = (e) => {
 .sl-vue-tree-next-node-item.sl-vue-tree-next-cursor-hover {
   background-color: var(--el-color-primary-light-7);
   color: var(--el-color-secondary-text);
+}
+
+.sl-vue-tree-next.sl-vue-tree-next-root {
+  border: none;
 }
 
 .contextmenu__item {

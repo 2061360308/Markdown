@@ -24,12 +24,15 @@ import {
   faMagnifyingGlass,
   faN,
   faPenRuler,
+  faPlus,
   faRotateLeft,
   faSquarePen,
   faTrash,
   faU,
   faWonSign,
 } from "@fortawesome/free-solid-svg-icons";
+
+import { faGithub } from "@fortawesome/free-brands-svg-icons";
 
 library.add(
   faArrowsRotate,
@@ -46,10 +49,12 @@ library.add(
   faFolder,
   faFolderOpen,
   faGear,
+  faGithub,
   faICursor,
   faMagnifyingGlass,
   faN,
   faPenRuler,
+  faPlus,
   faRotateLeft,
   faSquarePen,
   faTrash,

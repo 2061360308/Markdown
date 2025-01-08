@@ -70,7 +70,7 @@ const handleMenuSelect = (index) => {
       </el-menu>
 
       <splitpanes class="default-theme">
-        <pane :size="leftPaneSize">
+        <pane :size="leftPaneSize" :class="leftPaneSize === 0 ? '':'sidebar-pane'">
           <FileTree v-if="activeMenu=='files'" />
           <DiffManager v-else-if="activeMenu=='changes'" />
         </pane>
@@ -98,6 +98,10 @@ const handleMenuSelect = (index) => {
 .splitpanes {
   width: calc(100% - 54px);
   height: 100%;
+}
+
+.sidebar-pane{
+  min-width: 250px;
 }
 
 .el-menu--collapse {

@@ -101,7 +101,7 @@ const createVditorInstance = () => {
         // openFile(props.path).then((content) => {
         //   vditorInstance.setValue(content, true);
         // });
-        fs.read(props.path).then((content) => {
+        fs.get(props.path).then((content) => {
           vditorInstance.setValue(content, true);
         });
 

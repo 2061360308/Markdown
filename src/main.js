@@ -20,6 +20,15 @@ const loadConfig = async (app) => {
   }
 };
 
+const login = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get("code");
+  const repo = urlParams.get("repo");
+  console.log("code", code);
+};
+
+login();
+
 const app = createApp(App);
 app.config.globalProperties.$globalConfig = ref(null);
 console.log("globalConfig", app.config.globalProperties.$globalConfig);

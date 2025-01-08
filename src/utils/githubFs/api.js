@@ -186,7 +186,6 @@ class GithubApi {
 }
 
 const instance = new GithubApi();
-// Object.freeze(instance);
 
 export default instance;
 
