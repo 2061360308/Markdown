@@ -1,9 +1,0 @@
-[build]
-  command = "npm install && npm run build"
-  publish = "dist"
-
-[build.environment]
-  NODE_VERSION = "18"
-
-[build.lifecycle]
-  onBuild = "npm install -g remix && remix vite:build"
