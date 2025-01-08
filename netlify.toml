@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm install -g remix && remix vite:build"
+  command = "npx remix vite:build"
   publish = "dist/client"
 
 [build.environment]
