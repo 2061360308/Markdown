@@ -44,6 +44,9 @@ importers:
       mitt:
         specifier: ^3.0.1
         version: 3.0.1
+      remix:
+        specifier: ^2.15.2
+        version: 2.15.2
       sl-vue-tree-next:
         specifier: ^0.0.13
         version: 0.0.13
@@ -1138,6 +1141,10 @@ packages:
   readdirp@3.6.0:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
+
+  remix@2.15.2:
+    resolution: {integrity: sha512-fAawjmgChEWfDbXFizBJvrt2hcP5IiwMmJCbwhtE1IzYOYL9irSBkgX6Ck0wrtPmGz7o0t4bY4GWD+Z+B/9t2Q==}
+    engines: {node: '>=18.0.0'}
 
   reusify@1.0.4:
     resolution: {integrity: sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==}
@@ -2406,6 +2413,8 @@ snapshots:
   readdirp@3.6.0:
     dependencies:
       picomatch: 2.3.1
+
+  remix@2.15.2: {}
 
   reusify@1.0.4: {}
 
