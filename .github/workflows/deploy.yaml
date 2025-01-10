@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Update Vite base path
-        run: sed -i 's|base: "/"|base: "/HugoEditor/"|' vite.config.ts
+        run: "sed -i 's|base: \"/\"|base: \"/HugoEditor/\"|' vite.config.ts"
       - name: Build
         run: pnpm run build
       - name: Setup Pages
