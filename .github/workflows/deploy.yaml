@@ -41,6 +41,10 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install
+      - name: Update Vite base path
+        run: "sed -i 's|base: \"/\"|base: \"/HugoEditor/\"|' vite.config.ts"
+      - name: Check Vite config
+        run: cat vite.config.ts
       - name: Build
         run: pnpm run build
       - name: Setup Pages
