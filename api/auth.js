@@ -17,6 +17,10 @@ app.get('/api/auth', async (req, res) => {
   const client_secret = process.env.GITHUB_CLIENT_SECRET;
   const private_key = process.env.GITHUB_PRIVATE_KEY;
 
+  console.log('client_id：：', client_id);
+  console.log('client_secret：：', client_secret);
+  console.log('private_key：：', private_key);
+
   let redirect_uri;
 
   // GitHub 回调地址
