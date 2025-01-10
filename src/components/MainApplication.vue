@@ -1,16 +1,26 @@
 <script setup>
 import { Splitpanes, Pane } from "splitpanes";
 import "splitpanes/dist/splitpanes.css";
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 
 import FileTree from "./FileTree.vue";
 import WorkSpace from "./WorkSpace.vue";
 import StatusBar from "./StatusBar.vue";
 import DiffManager from "./DiffManager.vue";
+import EditingManager from "./EditingManager.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { useRouter } from "vue-router";
+import api from "@/utils/githubFs/api";
 
 const leftPaneSize = ref(20);
 const activeMenu = ref("files");
+const router = useRouter();
+
+onMounted(async () => {
+  if (!api.ready) {
+    router.push({ name: "login" });
+  }
+});
 
 const handleMenuSelect = (index) => {
   console.log("index:", index);
@@ -28,6 +38,9 @@ const handleMenuSelect = (index) => {
   switch (index) {
     case "files":
       activeMenu.value = "files";
+      break;
+    case "editing":
+      activeMenu.value = "editing";
       break;
     case "search":
       activeMenu.value = "search";
@@ -55,6 +68,10 @@ const handleMenuSelect = (index) => {
           <font-awesome-icon :icon="['fas', 'file']" size="2xl" />
           <template #title>资源管理器</template>
         </el-menu-item>
+        <el-menu-item index="editing">
+          <font-awesome-icon :icon="['fas', 'inbox']" size="2xl" />
+          <template #title>当前编辑</template>
+        </el-menu-item>
         <el-menu-item index="search">
           <font-awesome-icon :icon="['fas', 'magnifying-glass']" size="2xl" />
           <template #title>搜索</template>
@@ -70,9 +87,13 @@ const handleMenuSelect = (index) => {
       </el-menu>
 
       <splitpanes class="default-theme">
-        <pane :size="leftPaneSize" :class="leftPaneSize === 0 ? '':'sidebar-pane'">
-          <FileTree v-if="activeMenu=='files'" />
-          <DiffManager v-else-if="activeMenu=='changes'" />
+        <pane
+          :size="leftPaneSize"
+          :class="leftPaneSize === 0 ? '' : 'sidebar-pane'"
+        >
+          <FileTree v-if="activeMenu == 'files'" />
+          <EditingManager v-else-if="activeMenu == 'editing'" />
+          <DiffManager v-else-if="activeMenu == 'changes'" />
         </pane>
         <pane :size="100 - leftPaneSize">
           <WorkSpace />
@@ -100,7 +121,7 @@ const handleMenuSelect = (index) => {
   height: 100%;
 }
 
-.sidebar-pane{
+.sidebar-pane {
   min-width: 250px;
 }
 

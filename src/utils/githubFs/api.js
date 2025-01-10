@@ -16,9 +16,8 @@ class GithubApi {
     GithubApi.instance = this;
   }
 
-  init = async (owner, repo, token) => {
+  init = async (repo, token) => {
     // 初始化 Octokit
-    this.owner = owner;
     this.repo = repo;
 
     if (!this.octokit) {
@@ -27,22 +26,65 @@ class GithubApi {
       });
     }
 
+    let tokenValid = true;
+
     try {
       // 尝试获取用户信息
-      const { data } = await this.octokit.rest.users.getAuthenticated();
-      this.ready = true;
-      if (DEBUG) {
-        console.log("Token is valid. User info:", data);
-      }
-
-      return true;
+      const { data: user } = await this.octokit.rest.users.getAuthenticated();
+      this.owner = user.login;
+      console.log("User info:", this.owner, this.repo);
     } catch (error) {
-      this.octokit = null;
-      this.ready = false;
-      if (DEBUG) {
-        console.error("Token is invalid:", error);
+      tokenValid = false;
+    }
+
+    let repoValid = true;
+    let hasPushAccess = true;
+
+    try {
+      // 尝试获取仓库信息
+      // 获取仓库信息
+      if (!this.repo) {
+        throw new Error("this.repo is not defined");
       }
-      return false;
+      const { data: repo } = await this.octokit.rest.repos.get({
+        owner: this.owner,
+        repo: this.repo,
+      });
+
+      // 检查仓库是否存在以及是否有权限操作
+      hasPushAccess = repo.permissions.push;
+    } catch (error) {
+      repoValid = false;
+      hasPushAccess = false;
+    }
+
+    if (tokenValid && repoValid && hasPushAccess) {
+      this.ready = true;
+    }
+
+    return {
+      tokenValid: tokenValid,
+      repoValid: repoValid,
+      hasPushAccess: hasPushAccess,
+    };
+  };
+
+  getRepoNames = async (token) => {
+    const octokit = new Octokit({
+      auth: token,
+    });
+
+    try {
+      // 获取当前用户的所有仓库
+      const response = await octokit.rest.repos.listForAuthenticatedUser({
+        visibility: "all", // 获取所有可见性（public 和 private）的仓库
+        per_page: 100, // 每页获取的仓库数量
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching repositories:", error);
+      throw error;
     }
   };
 

@@ -20,12 +20,14 @@
     "crypto-js": "^4.2.0",
     "dexie": "^4.0.10",
     "element-plus": "^2.9.2",
+    "js-yaml": "^4.1.0",
     "mitt": "^3.0.1",
     "remix": "^2.15.2",
     "sl-vue-tree-next": "^0.0.13",
     "splitpanes": "^3.1.5",
     "vditor": "^3.10.8",
-    "vue": "^3.5.13"
+    "vue": "^3.5.13",
+    "vue-router": "^4.0.13"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",

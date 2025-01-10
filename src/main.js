@@ -2,6 +2,7 @@ import "./assets/main.css";
 
 import { createApp, ref } from "vue";
 import App from "./App.vue";
+import router from './router';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "element-plus/dist/index.css";
@@ -30,6 +31,7 @@ const login = () => {
 login();
 
 const app = createApp(App);
+app.use(router);
 app.config.globalProperties.$globalConfig = ref(null);
 console.log("globalConfig", app.config.globalProperties.$globalConfig);
 loadConfig(app);

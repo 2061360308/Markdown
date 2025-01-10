@@ -8,14 +8,16 @@ import {
   watch,
   onBeforeUnmount,
   nextTick,
+  createVNode,
+  render,
 } from "vue";
 
 import EventBus from "@/eventBus";
-import { openFile } from "@/utils/fileOperation";
 import { ElMessage } from "element-plus";
-import { updateFile } from "@/utils/fileOperation";
+import FrontMatterBlock from "./FrontMatterBlock.vue";
 
 import fs from "@/utils/githubFs/fs";
+import { splitFrontMatter } from "@/utils/frontMatter";
 
 const props = defineProps({
   // 编辑器名称/id
@@ -30,7 +32,21 @@ const props = defineProps({
   },
 });
 
+const frontMatter = ref({});
+
 let vditorInstance = null;
+
+const openFile = async (path) => {
+  // 读取文件内容并设置到编辑器中
+  fs.get(path).then((content) => {
+    // 分离 frontMatter 和 content
+    let result = splitFrontMatter(content);
+    frontMatter.value = result.frontMatter;
+
+    // 设置清理后的内容到编辑器中
+    vditorInstance.setValue(result.content, true);
+  });
+};
 
 const createVditorInstance = () => {
   // 等待下一个 tick 确保组件已渲染
@@ -97,13 +113,28 @@ const createVditorInstance = () => {
       after: () => {
         // 确保 vditorInstance 完全初始化后再进行操作
 
-        // 读取文件内容并设置到编辑器中
-        // openFile(props.path).then((content) => {
-        //   vditorInstance.setValue(content, true);
-        // });
-        fs.get(props.path).then((content) => {
-          vditorInstance.setValue(content, true);
-        });
+        // 获取编辑器元素并查找子元素
+        const editorElement = document.getElementById(props.editor);
+        console.log("Editor element:", editorElement);
+        if (editorElement) {
+          const vditorToolbarElement =
+            editorElement.querySelector(".vditor-toolbar");
+          console.log("vditor-toolbar element:", vditorToolbarElement);
+          if (vditorToolbarElement) {
+            // 动态插入组件到 vditor-toolbar 的下一个兄弟节点位置
+            const vnode = createVNode(FrontMatterBlock, {
+              frontMatter: frontMatter,
+            });
+            const container = document.createElement("div");
+            // container.style.border = "2px solid red"; // 添加边框以便于调试
+            vditorToolbarElement.insertAdjacentElement("afterend", container);
+            render(vnode, container);
+            console.log("Component inserted");
+          }
+        }
+
+        // 读取文件内容
+        openFile(props.path);
 
         // 传递 vditorInstance 实例
         EventBus.emit("vditorInstanceCreated", {

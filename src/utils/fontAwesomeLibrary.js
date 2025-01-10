@@ -6,6 +6,8 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 
 import {
+  faAnglesUp,
+  faAnglesDown,
   faArrowsRotate,
   faChevronDown,
   faChevronRight,
@@ -20,7 +22,9 @@ import {
   faFolder,
   faFolderOpen,
   faGear,
+  faInbox,
   faICursor,
+  faKey,
   faMagnifyingGlass,
   faN,
   faPenRuler,
@@ -32,9 +36,11 @@ import {
   faWonSign,
 } from "@fortawesome/free-solid-svg-icons";
 
-import { faGithub } from "@fortawesome/free-brands-svg-icons";
+import { faGithub, faTumblr } from "@fortawesome/free-brands-svg-icons";
 
 library.add(
+  faAnglesUp,
+  faAnglesDown,
   faArrowsRotate,
   faChevronDown,
   faChevronRight,
@@ -49,8 +55,10 @@ library.add(
   faFolder,
   faFolderOpen,
   faGear,
+  faInbox,
   faGithub,
   faICursor,
+  faKey,
   faMagnifyingGlass,
   faN,
   faPenRuler,
@@ -58,6 +66,7 @@ library.add(
   faRotateLeft,
   faSquarePen,
   faTrash,
+  faTumblr,
   faU,
   faWonSign
 );
