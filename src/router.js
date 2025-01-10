@@ -7,6 +7,7 @@ import LoginManager from "./components/LoginManager.vue";
 const base = import.meta.env.BASE_URL;
 
 const routes = [
+  { path: '/', redirect: `${base}main` },
   { path: `${base}main`, component: MainApplication, name: 'main' },
   { path: `${base}login`, component: LoginManager, name: 'login' },
 ];
