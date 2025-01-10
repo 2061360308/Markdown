@@ -100,7 +100,7 @@ const loginByGithub = () => {
   localStorage.setItem("loginMethod", loginMethod.value);
   console.log("loginByGithub");
   let client_id = "Iv23liKlkmkQ3Tc1M679";
-  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${Date.now().toString()}`;
+  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${Date.now().toString()}&others=aaa`;
   window.location.replace(url);
   loading.value = true;
 };

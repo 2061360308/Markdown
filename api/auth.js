@@ -7,12 +7,15 @@ const app = express();
 app.get('/api/auth', async (req, res) => {
   console.log('req：：', req);
 
+  console.log('req.query：：', req.query);
+
   const code = req.query.code;
 
   if (!code) return res.status(400).send('No code provided');
 
   const client_id = process.env.GITHUB_CLIENT_ID;
   const client_secret = process.env.GITHUB_CLIENT_SECRET;
+  const private_key = process.env.GITHUB_PRIVATE_KEY;
 
   let redirect_uri;
 
@@ -32,6 +35,8 @@ app.get('/api/auth', async (req, res) => {
   try {
     // 使用 @octokit/auth-app 进行身份验证
     const auth = createAppAuth({
+      appId: "1102849",
+      privateKey: private_key,
       clientId: client_id,
       clientSecret: client_secret,
     });
