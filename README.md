@@ -1,5 +1,7 @@
 # Hugo editor / Hugo 在线编辑器
 
+> 功能重构中，暂不可用（可以登录编辑，不能提交），愿意参与开发的可以选择下面体验地址进行体验
+
 ## 介绍
 Vue开发的在线Markdown编辑器，无需后端服务器，可随Hugo博客项目一起部署到Github Pages使用
 
@@ -12,7 +14,7 @@ Vue开发的在线Markdown编辑器，无需后端服务器，可随Hugo博客�
 如果需要自己创建秘钥使用，最好能够给予最小权限。
 
 ## 体验地址
-1. [Github Pages]() 
+1. [Github Pages](https://www.1think2program.cn/HugoEditor) 
 2. [Vercel](https://hugo-editor.1think2program.cn)
 
 > 以上体验方式中 Github 认证服务所用服务器均由Vercel支持
@@ -48,8 +50,10 @@ Vue开发的在线Markdown编辑器，无需后端服务器，可随Hugo博客�
 
 
 ## 截图
-![登录页面](./docs/images/屏幕截图%202025-01-04%20224037.png)
+![登录页面-Github授权登录](./docs/images/屏幕截图%202025-01-11%20005851.png)
 
-![编辑页面](./docs/images/屏幕截图%202025-01-04%20223235.png)
+![登录页面-输入Token登录](./docs/images/屏幕截图%202025-01-11%20005920.png)
 
-![提交页面](./docs/images/屏幕截图%202025-01-04%20223746.png)
+![编辑管理器1](./docs/images/屏幕截图%202025-01-11%20010708.png)
+
+![编辑管理器1](./docs/images/屏幕截图%202025-01-11%20010723.png)
