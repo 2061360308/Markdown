@@ -6,27 +6,12 @@ const app = express();
 
 app.get("/api/auth", async (req, res) => {
   const code = req.query.code;
-  const requestUrl = req.query.state;
+  let requestUrl = req.query.state;
 
   if (!code) return res.status(400).send("No code provided");
 
   const client_secret = process.env.GITHUB_CLIENT_SECRET;
   const private_key = process.env.GITHUB_PRIVATE_KEY;
-
-  let redirect_uri;
-
-  // GitHub 回调地址
-  if (process.env.APP_URL.endsWith("/")) {
-    redirect_uri = process.env.APP_URL + "api/auth";
-  } else {
-    redirect_uri = process.env.APP_URL + "/api/auth";
-  }
-
-  // GitHub Pages 地址
-  let pages_url = process.env.PAGES_URL;
-  if (!pages_url.endsWith("/")) {
-    pages_url = pages_url + "/";
-  }
 
   try {
     // 使用 @octokit/auth-app 进行身份验证
@@ -39,8 +24,7 @@ app.get("/api/auth", async (req, res) => {
 
     const { token } = await auth({
       type: "oauth-user",
-      code,
-      redirectUrl: redirect_uri,
+      code
     });
 
     if (!token) {

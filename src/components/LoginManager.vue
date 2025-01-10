@@ -2,7 +2,7 @@
 import { ElLoading } from "element-plus";
 import { ElMessageBox, ElMessage, ElInput } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { ref, onMounted, getCurrentInstance, watch } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/utils/githubFs/api";
 import { encryptToken, decryptToken } from "@/utils/encryptToken";
