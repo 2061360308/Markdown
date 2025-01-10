@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import Vditor from "vditor";
 import "vditor/dist/index.css";
 import {
@@ -8,13 +8,10 @@ import {
   watch,
   onBeforeUnmount,
   nextTick,
-  createVNode,
-  render,
 } from "vue";
 
-import EventBus from "@/eventBus";
+import { EventBusType, EventBus } from "@/eventBus";
 import { ElMessage } from "element-plus";
-import FrontMatterBlock from "./FrontMatterBlock.vue";
 
 import fs from "@/utils/githubFs/fs";
 import { splitFrontMatter } from "@/utils/frontMatter";
@@ -34,17 +31,21 @@ const props = defineProps({
 
 const frontMatter = ref({});
 
-let vditorInstance = null;
+let vditorInstance: Vditor | null = null;
 
-const openFile = async (path) => {
+const openFile = async (path: string) => {
   // 读取文件内容并设置到编辑器中
+  console.log("openFile", path);
   fs.get(path).then((content) => {
+    console.log("openFile content", content);
     // 分离 frontMatter 和 content
     let result = splitFrontMatter(content);
     frontMatter.value = result.frontMatter;
 
     // 设置清理后的内容到编辑器中
-    vditorInstance.setValue(result.content, true);
+    if (vditorInstance) {
+      vditorInstance.setValue(result.content, true);
+    }
   });
 };
 
@@ -52,7 +53,8 @@ const createVditorInstance = () => {
   // 等待下一个 tick 确保组件已渲染
   nextTick(() => {
     vditorInstance = new Vditor(props.editor, {
-      value: "# Hello Vditor!",
+      value:
+        "# Hello Vditor!\n\n这是编辑器预设内容，如果你看到这段文字代表内容没有被正确显示！",
       mode: "ir",
       height: "100%",
       input: inputHandler,
@@ -113,31 +115,12 @@ const createVditorInstance = () => {
       after: () => {
         // 确保 vditorInstance 完全初始化后再进行操作
 
-        // 获取编辑器元素并查找子元素
-        const editorElement = document.getElementById(props.editor);
-        console.log("Editor element:", editorElement);
-        if (editorElement) {
-          const vditorToolbarElement =
-            editorElement.querySelector(".vditor-toolbar");
-          console.log("vditor-toolbar element:", vditorToolbarElement);
-          if (vditorToolbarElement) {
-            // 动态插入组件到 vditor-toolbar 的下一个兄弟节点位置
-            const vnode = createVNode(FrontMatterBlock, {
-              frontMatter: frontMatter,
-            });
-            const container = document.createElement("div");
-            // container.style.border = "2px solid red"; // 添加边框以便于调试
-            vditorToolbarElement.insertAdjacentElement("afterend", container);
-            render(vnode, container);
-            console.log("Component inserted");
-          }
-        }
-
         // 读取文件内容
         openFile(props.path);
-
-        // 传递 vditorInstance 实例
-        EventBus.emit("vditorInstanceCreated", {
+        let eventBus: EventBus = new EventBus(
+          EventBusType.VditorInstanceCreated
+        );
+        eventBus.emit({
           name: props.editor,
           vditorInstance: vditorInstance,
         });
@@ -168,24 +151,18 @@ defineExpose({
   vditorInstance,
 });
 
-const inputHandler = (e) => {
-  EventBus.emit("file-changed", e.length);
+const inputHandler = (e: string | any[]) => {
+  let eventBus: EventBus = new EventBus(EventBusType.FileChanged);
+  eventBus.emit(e.length);
 };
 
 const saveFile = () => {
   console.log("saveFile");
   const file_path = props.path;
-  const file_content = vditorInstance.getValue();
-  // updateFile(file_path, file_content).then(() => {
-  //   EventBus.emit("file-saved");
-  //   ElMessage({
-  //     message: "文章保存成功",
-  //     grouping: true,
-  //     type: "success",
-  //   });
-  // });
+  const file_content = (vditorInstance as any).getValue();
+  let eventBus: EventBus = new EventBus(EventBusType.FileSaved);
   fs.write(file_path, file_content).then(() => {
-    EventBus.emit("file-saved");
+    eventBus.emit();
     ElMessage({
       message: "文章保存成功",
       grouping: true,

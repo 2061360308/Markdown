@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ElLoading } from "element-plus";
 import { ElMessageBox, ElMessage, ElInput } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";

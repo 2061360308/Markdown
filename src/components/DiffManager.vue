@@ -1,8 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElButton, ElInput } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { deleteFile, openFile } from "@/utils/fileOperation";
 
 import fs from "@/utils/githubFs/fs";
 

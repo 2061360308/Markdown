@@ -38,37 +38,39 @@ import {
 
 import { faGithub, faTumblr } from "@fortawesome/free-brands-svg-icons";
 
-library.add(
-  faAnglesUp,
-  faAnglesDown,
-  faArrowsRotate,
-  faChevronDown,
-  faChevronRight,
-  faCircleCheck,
-  faCircleExclamation,
-  faCodeBranch,
-  faCopy,
-  faD,
-  faFile,
-  faFileShield,
-  faFloppyDisk,
-  faFolder,
-  faFolderOpen,
-  faGear,
-  faInbox,
-  faGithub,
-  faICursor,
-  faKey,
-  faMagnifyingGlass,
-  faN,
-  faPenRuler,
-  faPlus,
-  faRotateLeft,
-  faSquarePen,
-  faTrash,
-  faTumblr,
-  faU,
-  faWonSign
-);
+export const initFontAwesomeIcons = () => {
+  library.add(
+    faAnglesUp,
+    faAnglesDown,
+    faArrowsRotate,
+    faChevronDown,
+    faChevronRight,
+    faCircleCheck,
+    faCircleExclamation,
+    faCodeBranch,
+    faCopy,
+    faD,
+    faFile,
+    faFileShield,
+    faFloppyDisk,
+    faFolder,
+    faFolderOpen,
+    faGear,
+    faInbox,
+    faGithub,
+    faICursor,
+    faKey,
+    faMagnifyingGlass,
+    faN,
+    faPenRuler,
+    faPlus,
+    faRotateLeft,
+    faSquarePen,
+    faTrash,
+    faTumblr,
+    faU,
+    faWonSign
+  );
+};
 
-export default library;
+export default initFontAwesomeIcons;

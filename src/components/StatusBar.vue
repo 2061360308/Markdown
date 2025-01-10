@@ -1,21 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-import EventBus from "@/eventBus";
+import { EventBusType, EventBus } from "@/eventBus";
 
 const changesFlag = ref(false);
 const lastSaveTime = ref('');
 const totalWordsNum = ref(0);
 
-EventBus.on("file-saved", () => {
+let fileSavedEvent: EventBus = new EventBus(EventBusType.FileSaved);
+let fileChangedEvent: EventBus = new EventBus(EventBusType.FileChanged);
+
+fileSavedEvent.on(() => {
   changesFlag.value = false;
   lastSaveTime.value = new Date().toLocaleString();
 });
 
-EventBus.on("file-changed", (num) => {
+fileChangedEvent.on((num) => {
   changesFlag.value = true;
-
 });
 </script>
 

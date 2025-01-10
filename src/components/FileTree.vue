@@ -1,13 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { SlVueTreeNext } from "sl-vue-tree-next";
 import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
 
 import { ref, onMounted, nextTick } from "vue";
 
-import { ElSelect, ElOption } from "element-plus";
+import { ElSelect, ElOption, ElMessage, ElMessageBox } from "element-plus";
 
-import EventBus from "@/eventBus";
+import { EventBusType, EventBus } from "@/eventBus";
 import {
   ContextMenu,
   ContextMenuGroup,
@@ -20,14 +20,14 @@ import api from "@/utils/githubFs/api";
 
 const loading = ref(false);
 
-let current_clicked_node = null;
+let current_clicked_node: any = null;
 
 const dialogCreateFileVisible = ref(false); // 创建文件的对话框
 
 const createFileValue = ref({
   fileName: "",
-  createFolder: "",
   type: "file",
+  fileFolder: "",
 });
 
 const menuVisible = ref(false);
@@ -37,66 +37,74 @@ const optionsComponent = ref({
   y: 200,
 });
 
-const selectTreeType = ref("remote");
+const selectTreeType = ref("mixed");
 const treeTypes = ref([
   { label: "混合显示文件树", value: "mixed" },
   { label: "本地缓存文件树(扁平)", value: "local" },
   { label: "远程Github文件树(只读)", value: "remote" },
 ]);
 
-let fileTree = ref([]);
+let fileTree = ref<any[]>([]);
 
 // 转换 GitHub API 返回的文件目录树为所需格式
-const transformRemoteTree = (tree) => {
-  const result = [];
-  const pathMap = {};
+const transformRemoteTree = (tree: any) => {
+  const result: any[] = [];
+  const pathMap: { [key: string]: any } = {};
 
-  tree.forEach((item) => {
-    const parts = item.path.split("/");
-    let currentLevel = result;
+  tree.forEach(
+    (item: { path: string; type: string; mode: any; size: any; sha: any }) => {
+      const parts = item.path.split("/");
+      let currentLevel = result;
 
-    parts.forEach((part, index) => {
-      const currentPath = parts.slice(0, index + 1).join("/");
-      const existingPath = pathMap[currentPath];
+      parts.forEach((part: any, index: number) => {
+        const currentPath = parts.slice(0, index + 1).join("/");
+        const existingPath = pathMap[currentPath];
 
-      if (existingPath) {
-        currentLevel = existingPath.children;
-      } else {
-        const newItem = {
-          title: part,
-          isLeaf: item.type === "blob",
-          isExpanded: false,
-          data: {
-            path: item.path,
-            mode: item.mode,
-            type: item.type,
-            size: item.size,
-            sha: item.sha,
-          },
-          children: [],
-        };
+        if (existingPath) {
+          currentLevel = existingPath.children;
+        } else {
+          const newItem = {
+            title: part,
+            isLeaf: item.type === "blob",
+            isExpanded: false,
+            data: {
+              path: item.path,
+              mode: item.mode,
+              type: item.type,
+              size: item.size,
+              sha: item.sha,
+            },
+            children: [],
+          };
 
-        currentLevel.push(newItem);
-        pathMap[currentPath] = newItem;
+          currentLevel.push(newItem);
+          pathMap[currentPath] = newItem;
 
-        if (item.type === "tree") {
-          currentLevel = newItem.children;
+          if (item.type === "tree") {
+            currentLevel = newItem.children;
+          }
         }
-      }
-    });
-  });
+      });
+    }
+  );
 
   // 排序函数，将文件夹放在前面，并按字母顺序排序
-  const sortItems = (items) => {
-    items.sort((a, b) => {
-      if (a.isLeaf === b.isLeaf) {
-        return a.title.localeCompare(b.title);
+  const sortItems = (items: any[]) => {
+    items.sort(
+      (a: { isLeaf: any; title: string }, b: { isLeaf: any; title: any }) => {
+        if (a.isLeaf === b.isLeaf) {
+          return a.title.localeCompare(b.title);
+        }
+        return a.isLeaf ? 1 : -1;
       }
-      return a.isLeaf ? 1 : -1;
-    });
+    );
 
-    items.forEach((item) => {
-      if (!item.isLeaf && item.children.length > 0) {
+    items.forEach((item: { isLeaf: any; children: any[] }) => {
+      if (
+        !item.isLeaf &&
+        Array.isArray(item.children) &&
+        item.children.length > 0
+      ) {
         sortItems(item.children);
       }
     });
@@ -107,10 +115,10 @@ const transformRemoteTree = (tree) => {
   return result;
 };
 
-const transformLocalTree = (tree) => {
-  const result = [];
+const transformLocalTree = (tree: any[]) => {
+  const result: any[] = [];
 
-  tree.forEach((item) => {
+  tree.forEach((item: any) => {
     result.push({
       title: item,
       isLeaf: true,
@@ -124,38 +132,49 @@ const transformLocalTree = (tree) => {
   return result;
 };
 
-const mixTree = (local, remote) => {
+const mixTree = (local: any[], remote: any[]) => {
   const pathMap = {};
 
-  remote.forEach((item) => {
-    pathMap[item.data.path] = item;
-    item.data.posititon = "remote";
-  });
-
-  local.forEach((item) => {
-    if (pathMap[item.data.path]) {
-      // 如果本地和远程同时有一个项目则按本地的算
-      const remoteItem = pathMap[item.data.path];
-      remoteItem.title = item.title;
-      remoteItem.isLeaf = item.isLeaf;
-      remoteItem.data = item.data;
-      remoteItem.children = mixTree(remoteItem.children, item.children);
-    } else {
+  remote.forEach(
+    (item: { data: { path: string | number; posititon: string } }) => {
       pathMap[item.data.path] = item;
-      item.data.posititon = "local";
-      remote.push(item);
+      item.data.posititon = "remote";
     }
-  });
+  );
 
-  const sortItems = (items) => {
-    items.sort((a, b) => {
-      if (a.isLeaf === b.isLeaf) {
-        return a.title.localeCompare(b.title);
+  local.forEach(
+    (item: {
+      data: { path: string | number; posititon: string };
+      title: any;
+      isLeaf: any;
+      children: any;
+    }) => {
+      if (pathMap[item.data.path]) {
+        // 如果本地和远程同时有一个项目则按本地的算
+        const remoteItem = pathMap[item.data.path];
+        remoteItem.title = item.title;
+        remoteItem.isLeaf = item.isLeaf;
+        remoteItem.data = item.data;
+        remoteItem.children = mixTree(remoteItem.children, item.children);
+      } else {
+        pathMap[item.data.path] = item;
+        item.data.posititon = "local";
+        remote.push(item);
       }
-      return a.isLeaf ? 1 : -1;
-    });
+    }
+  );
 
-    items.forEach((item) => {
+  const sortItems = (items: any[]) => {
+    items.sort(
+      (a: { isLeaf: any; title: string }, b: { isLeaf: any; title: any }) => {
+        if (a.isLeaf === b.isLeaf) {
+          return a.title.localeCompare(b.title);
+        }
+        return a.isLeaf ? 1 : -1;
+      }
+    );
+
+    items.forEach((item: { isLeaf: any; children: string | any[] }) => {
       if (!item.isLeaf && item.children.length > 0) {
         sortItems(item.children);
       }
@@ -201,7 +220,7 @@ onMounted(() => {
 });
 
 // 节点选择事件处理函数
-const nodeSelected = (selectedNodes) => {
+const nodeSelected = (selectedNodes: string | any[]) => {
   let node;
   if (selectedNodes.length < 0) {
     return;
@@ -215,28 +234,33 @@ const nodeSelected = (selectedNodes) => {
   }
 };
 
-const openFile = (path) => {
+const openFile = (path: string) => {
   // 获取后缀名
   let suffix = path.substring(path.lastIndexOf(".") + 1);
+  let eventBus: EventBus;
   if (suffix === "md") {
-    EventBus.emit("openMdFile", path);
+    eventBus = new EventBus(EventBusType.OpenMdFile);
   } else {
-    EventBus.emit("openFile", path);
+    eventBus = new EventBus(EventBusType.OpenMdFile);
   }
+  eventBus.emit(path);
 };
 
 // 节点拖拽事件处理函数
-const nodeDropped = (event) => {
+const nodeDropped = (event: any) => {
   console.log("Node dropped:", event);
 };
 
 // 节点展开/折叠事件处理函数
-const nodeToggled = (node) => {
+const nodeToggled = (node: any) => {
   console.log("Node toggled:", node);
 };
 
 // 显示右键菜单
-const showContextMenu = (node, event) => {
+const showContextMenu = (
+  node: any,
+  event: { preventDefault: () => void; clientX: any; clientY: any }
+) => {
   // 只在混合模式下允许创建，删除，重命名等操作
   if (selectTreeType.value !== "mixed") {
     return;
@@ -252,17 +276,22 @@ const showContextMenu = (node, event) => {
 };
 
 // 删除文件
-const deleteFile = (e) => {
+const deleteFile = (e: any) => {
   // Todo
-  if (current_clicked_node.data.posititon === "remote") {
+  if (
+    current_clicked_node &&
+    current_clicked_node?.data?.posititon === "remote"
+  ) {
     ElMessageBox.confirm("将立即执行git提交，确定删除远程文件吗？", "Warning", {
       confirmButtonText: "删除",
       cancelButtonText: "取消",
       type: "warning",
     })
       .then(() => {
-        let message = "Delete : " + current_clicked_node.data.path;
-        let files = [{ path: current_clicked_node.data.path, content: null }];
+        let message = "Delete : " + (current_clicked_node?.data?.path ?? "");
+        let files = [
+          { path: current_clicked_node?.data?.path ?? "", content: null },
+        ];
         loading.value = true;
         api.commitChanges(files, message).then((res) => {
           console.log("deleteFile", res);
@@ -310,7 +339,7 @@ const deleteFile = (e) => {
   }
 };
 
-const showCreateFileDialog = (e) => {
+const showCreateFileDialog = (e: { target: any }) => {
   let create_folder;
 
   if (current_clicked_node.data.type === "tree") {
@@ -423,7 +452,6 @@ const createFile = () => {
     <div class="file-tree-inner-box">
       <sl-vue-tree-next
         :modelValue="fileTree"
-        @update:modelValue="updateFileNodes"
         ref="slVueTree"
         :allow-multiselect="false"
         :allow-drag="false"

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { defineProps, onMounted, ref } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 

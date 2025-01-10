@@ -1,6 +1,5 @@
 // 管理当前文件
 import api from "./api.js";
-import EventBus from "@/eventBus";
 import Dexie from "dexie";
 
 class Fs {

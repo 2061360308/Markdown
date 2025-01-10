@@ -1,26 +1,23 @@
-<script setup>
-import { ref, nextTick } from "vue";
-import { ElTabs, ElTabPane } from "element-plus";
+<script setup lang="ts">
+import { ref, nextTick, Ref } from "vue";
+import { ElTabs, ElTabPane, TabPaneName } from "element-plus";
 import MdEditor from "./MdEditor.vue";
-import EventBus from "@/eventBus";
+import { EventBusType, EventBus } from "@/eventBus";
 
-const tabs = ref([]); // [{ title: 'Tab 1', path:'', name: '1' }, ...]
+const tabs = ref<{ title: string; path: string; name: string }[]>([]); // [{ title: 'Tab 1', path:'', name: '1' }, ...]
 
-let tabsWidgets = {};
+let tabsWidgets: { [key: string]: any } = {};
 
-const currentTabsValue = ref(null);
+const currentTabsValue: Ref<string> = ref("");
 
-const removeTab = (targetName) => {
-  console.log("removeTab:", targetName);
+const removeTab = (targetName: TabPaneName) => {
   const _tabs = tabs.value;
   let activeName = currentTabsValue.value;
 
-  console.log(targetName, activeName);
   if (activeName === targetName) {
     tabs.value.forEach((tab, index) => {
       if (tab.name === targetName) {
         const nextTab = tabs.value[index + 1] || tabs.value[index - 1];
-        console.log("nextTab:", nextTab, tabs);
         if (nextTab) {
           activeName = nextTab.name;
         }
@@ -32,18 +29,16 @@ const removeTab = (targetName) => {
   currentTabsValue.value = activeName;
 };
 
-EventBus.on("openMdFile", (path) => {
+let openMdFileEventBus: EventBus = new EventBus(EventBusType.OpenMdFile);
+openMdFileEventBus.on((path) => {
   // 随机生成一个唯一的 name
   const name = Math.random().toString(36).substr(2, 8);
   // 判断打开的文件有没有文件名重名的
   // 重名则需要展示完整路径，否则展示文件名
   let file_name = path.split("/").pop();
   const duplicate = Object.values(tabs.value).filter((tabItem) => {
-    console.log("tabItem.title:", tabItem.title);
     return tabItem.title === file_name;
   });
-
-  console.log("isDuplicate:", duplicate);
 
   let title = file_name;
 
@@ -64,8 +59,12 @@ EventBus.on("openMdFile", (path) => {
   currentTabsValue.value = name;
 });
 
+let vditorInstanceCreatedEventBus: EventBus = new EventBus(
+  EventBusType.VditorInstanceCreated
+);
+
 // 监听编辑器实例创建事件
-EventBus.on("vditorInstanceCreated", (data) => {
+vditorInstanceCreatedEventBus.on((data) => {
   const { name, vditorInstance } = data;
   tabsWidgets[name] = vditorInstance;
 });
