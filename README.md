@@ -15,6 +15,9 @@ Vue开发的在线Markdown编辑器，无需后端服务器，可随Hugo博客�
 
 ## 体验地址
 1. [Github Pages](https://www.1think2program.cn/HugoEditor) 
+> 注意：无法重写路由规则，登录回调中重定向到/login路径无法识别，暂时无法使用，等待修复，请使用Vercel
+
+
 2. [Vercel](https://hugo-editor.1think2program.cn)
 
 > 以上体验方式中 Github 认证服务所用服务器均由Vercel支持
