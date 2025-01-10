@@ -1,39 +1,31 @@
-import express from 'express';
-import { createAppAuth } from '@octokit/auth-app';
-import { Octokit } from '@octokit/core';
+import express from "express";
+import { createAppAuth } from "@octokit/auth-app";
+import { Octokit } from "@octokit/core";
 
 const app = express();
 
-app.get('/api/auth', async (req, res) => {
-  console.log('req：：', req);
-
-  console.log('req.query：：', req.query);
-
+app.get("/api/auth", async (req, res) => {
   const code = req.query.code;
+  const requestUrl = req.query.state;
 
-  if (!code) return res.status(400).send('No code provided');
+  if (!code) return res.status(400).send("No code provided");
 
-  const client_id = process.env.GITHUB_CLIENT_ID;
   const client_secret = process.env.GITHUB_CLIENT_SECRET;
   const private_key = process.env.GITHUB_PRIVATE_KEY;
-
-  console.log('client_id：：', client_id);
-  console.log('client_secret：：', client_secret);
-  console.log('private_key：：', private_key);
 
   let redirect_uri;
 
   // GitHub 回调地址
-  if (process.env.APP_URL.endsWith('/')) {
-    redirect_uri = process.env.APP_URL + 'api/auth';
+  if (process.env.APP_URL.endsWith("/")) {
+    redirect_uri = process.env.APP_URL + "api/auth";
   } else {
-    redirect_uri = process.env.APP_URL + '/api/auth';
+    redirect_uri = process.env.APP_URL + "/api/auth";
   }
 
   // GitHub Pages 地址
   let pages_url = process.env.PAGES_URL;
-  if (!pages_url.endsWith('/')) {
-    pages_url = pages_url + '/';
+  if (!pages_url.endsWith("/")) {
+    pages_url = pages_url + "/";
   }
 
   try {
@@ -41,37 +33,46 @@ app.get('/api/auth', async (req, res) => {
     const auth = createAppAuth({
       appId: "1102849",
       privateKey: private_key,
-      clientId: client_id,
+      clientId: "Iv23liKlkmkQ3Tc1M679",
       clientSecret: client_secret,
     });
 
     const { token } = await auth({
-      type: 'oauth-user',
+      type: "oauth-user",
       code,
       redirectUrl: redirect_uri,
     });
 
     if (!token) {
-      console.error('GitHub 未返回访问令牌');
+      console.error("GitHub 未返回访问令牌");
       return res
         .status(500)
-        .send({ message: 'No access token returned from GitHub.' });
+        .send({ message: "No access token returned from GitHub." });
     }
 
+    // 解析 requestUrl 并移除 access_token 参数
+    const url = new URL(requestUrl);
+    url.searchParams.delete("access_token");
+
+    // 添加新的访问令牌
+    url.searchParams.append("access_token", token);
+
+    requestUrl = url.toString();
+
     // Redirect back to your frontend app with the access token in the URL
-    res.redirect(`${pages_url}#/?access_token=${token}`);
+    res.redirect(requestUrl);
   } catch (error) {
-    console.error('认证未知错误：', error);
+    console.error("认证未知错误：", error);
     res.status(500).send({
-      message: 'An error occurred while trying to authenticate',
+      message: "An error occurred while trying to authenticate",
       error: error,
     });
   }
 });
 
-app.get('/api', async (req, res) => {
+app.get("/api", async (req, res) => {
   res.send(
-    'Your API is working properly. The GitHub auth route is at /api/auth'
+    "Your API is working properly. The GitHub auth route is at /api/auth"
   );
 });
 

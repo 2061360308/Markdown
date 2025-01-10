@@ -50,8 +50,8 @@ onMounted(async () => {
     console.log("hasPushAccess", hasPushAccess);
 
     if (tokenValid) {
-        // Todo 暂时忽略remember选项
-        localStorage.setItem("access_token", encryptToken(access_token));
+      // Todo 暂时忽略remember选项
+      localStorage.setItem("access_token", encryptToken(access_token));
     }
 
     if (!tokenValid) {
@@ -96,11 +96,26 @@ const loginByToken = () => {
   }
 };
 
-const loginByGithub = () => {
+const loginByGithub = async () => {
   localStorage.setItem("loginMethod", loginMethod.value);
+  // 获取当前查询参数
+  let params = new URLSearchParams(route.query);
+  // 检查是否已经存在 time 参数
+  if (params.has("time")) {
+    // 更新 time 参数的值
+    params.set("time", Date.now().toString());
+  } else {
+    // 添加新的 time 参数
+    params.append("time", Date.now().toString());
+  }
+  // 使用 router.push 更新 URL 的查询参数而不刷新页面
+  await router.push({ query: { ...route.query, time: params.get("time") } });
+  await nextTick();
+
+  const currentUrl = window.location.href;
   console.log("loginByGithub");
   let client_id = "Iv23liKlkmkQ3Tc1M679";
-  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${Date.now().toString()}&others=aaa`;
+  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${encodeURIComponent(currentUrl)}`;
   window.location.replace(url);
   loading.value = true;
 };
