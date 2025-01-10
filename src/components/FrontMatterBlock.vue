@@ -9,8 +9,6 @@ const props = defineProps({
   },
 });
 
-const isFold = ref(false);
-
 const form = ref({
   name: '',
   region: '',
@@ -34,19 +32,7 @@ onMounted(() => {
 
 <template>
   <div class="front-matter">
-    <div class="fold-bar">
-      <font-awesome-icon
-        v-if="isFold"
-        @click="isFold = !isFold"
-        :icon="['fas', 'angles-up']"
-      />
-      <font-awesome-icon
-        v-else
-        @click="isFold = !isFold"
-        :icon="['fas', 'angles-down']"
-      />
-    </div>
-    <div class="content" v-if="isFold">
+    <div class="content">
       <el-form :model="form" label-width="auto" style="max-width: 600px">
         <el-form-item label="Activity name">
           <el-input v-model="form.name" />
