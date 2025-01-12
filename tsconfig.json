@@ -1,21 +1,28 @@
 {
   "compilerOptions": {
-  "target": "esnext",
-  "useDefineForClassFields": true,
-  "module": "esnext",
-  "moduleResolution": "node",
-  "strict": true,
-  "jsx": "preserve",
-  "sourceMap": true,
-  "resolveJsonModule": true,
-  "isolatedModules": true,
-  "esModuleInterop": true,
-  "lib": ["esnext", "dom"],
-  "skipLibCheck": true,
-  "paths": {
-  "@/*": ["./src/*"]
+    "target": "esnext",
+    "useDefineForClassFields": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["esnext", "dom"],
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "forceConsistentCasingInFileNames": false,
+    "types": ["vite/client"]
   },
-  "forceConsistentCasingInFileNames": false
-  },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "./components.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "./components.d.ts"
+  ]
 }

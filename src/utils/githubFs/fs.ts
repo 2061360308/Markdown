@@ -4,6 +4,10 @@ import Dexie from "dexie";
 
 class Fs {
 
+  db!: Dexie;
+  static instance: Fs | null = null;
+  api: any = api;
+
   constructor() {
     if (Fs.instance) {
       return Fs.instance;
@@ -19,13 +23,13 @@ class Fs {
     Fs.instance = this;
   }
 
-  isExist = async (path) => {
+  isExist = async (path: string) => {
     // 文件是否存在
     const count = await this.db.files.where({ path }).count();
     return count > 0;
   };
 
-  write = async (path, content='') => {
+  write = async (path: string, content='') => {
     /**
      * 写入文件
      */
@@ -37,7 +41,7 @@ class Fs {
     return true;
   }
 
-  get = async (path) => {
+  get = async (path: string) => {
     /**
      * 获取文件内容
      */
@@ -48,7 +52,7 @@ class Fs {
     return file.content;
   }
 
-  delete = async (path) => {
+  delete = async (path: string) => {
     // 删除文件
     if (!this.isExist(path)) {
       return false;
@@ -69,6 +73,5 @@ class Fs {
 }
 
 const instance = new Fs();
-// Object.freeze(instance);
 
 export default instance;

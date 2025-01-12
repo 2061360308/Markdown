@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElLoading } from "element-plus";
+import { CheckboxValueType, ElLoading } from "element-plus";
 import { ElMessageBox, ElMessage, ElInput } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { ref, onMounted, nextTick } from "vue";
@@ -9,24 +9,28 @@ import { encryptToken, decryptToken } from "@/utils/encryptToken";
 
 const route = useRoute();
 const router = useRouter();
-const loading = ref(false);
+const loading = ref(false); // whether to show loading
+// the login method that user choose(github or token)
 const loginMethod = ref("github");
-const chooseRepo = ref(false);
-const remember = ref([]);
-const inputToken = ref("");
-const repo = ref("");
-const repoList = ref([]);
+const chooseRepo = ref(false); // whether to choose repo
+const remember = ref<boolean>(false); // whether to remember the token
+// the token that user input, just for token login
+const inputToken = ref<string>("");
+const repo = ref<string>(""); // the repo name that user want to use
+// the list of repos that user has access to
+const repoList = ref<{ label: string; value: string }[]>([]);
 
 let access_token;
 
 onMounted(async () => {
   const rememberValue = localStorage.getItem("remember");
-  remember.value = rememberValue === "true" ? ["remember"] : [];
+  remember.value = rememberValue === "true" ? true : false;
 
   const loginMethodValue = localStorage.getItem("loginMethod");
   loginMethod.value = loginMethodValue || "github";
 
-  repo.value = route.query.repo || localStorage.getItem("repo") || "";
+  repo.value =
+    (route.query.repo as string | null) || localStorage.getItem("repo") || "";
   access_token =
     route.query.access_token ||
     decryptToken(localStorage.getItem("access_token")) ||
@@ -39,7 +43,7 @@ onMounted(async () => {
   if (access_token) {
     // 清除查询参数
     loading.value = true;
-    router.replace({ query: null });
+    router.replace({ query: {} });
     let { tokenValid, repoValid, hasPushAccess } = await api.init(
       repo.value,
       access_token
@@ -79,9 +83,8 @@ onMounted(async () => {
   }
 });
 
-const changeRemember = (value) => {
-  value = value[0] === "remember" ? true : false;
-  localStorage.setItem("remember", value);
+const changeRemember = (e: CheckboxValueType) => {
+  localStorage.setItem("remember", (e as boolean).toString());
 };
 
 const loginByToken = () => {
@@ -115,7 +118,9 @@ const loginByGithub = async () => {
   const currentUrl = window.location.href;
   console.log("loginByGithub");
   let client_id = "Iv23liKlkmkQ3Tc1M679";
-  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${encodeURIComponent(currentUrl)}`;
+  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${encodeURIComponent(
+    currentUrl
+  )}`;
   window.location.replace(url);
   loading.value = true;
 };
@@ -169,18 +174,15 @@ const setRepoLogin = () => {
         </div>
         <div class="options">
           <span class="remember-me">
-            <el-checkbox-group v-model="remember" @change="changeRemember">
-              <el-tooltip
-                class="box-item"
-                effect="dark"
-                content="Token将被保存到本地，请注意秘钥安全"
-                placement="top"
-              >
-                <el-checkbox value="remember" name="type">
-                  保持登录
-                </el-checkbox>
-              </el-tooltip>
-            </el-checkbox-group>
+            <el-tooltip
+              class="box-item"
+              effect="dark"
+              content="Token将被保存到本地，请注意秘钥安全"
+              placement="top"
+            >
+              <el-checkbox v-model="remember" @change="changeRemember">保持登录</el-checkbox>
+              <!-- <el-radio :value="true" v-model="remember" @click="changeRemember"></el-radio> -->
+            </el-tooltip>
           </span>
           <span class="login-methods">
             <el-tooltip

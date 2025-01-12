@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>页面重定向</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      .container {
+        display: inline-block;
+        text-align: left;
+      }
+      .log {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>页面重定向</h1>
+      <p>您访问的页面不存在，正在重定向到主页... <span id="countdown">5</span> 秒</p>
+      <p>
+        如果您的浏览器不支持自动重定向，请点击 <a id="redirect-link" href="/">这里</a> 返回主页。
+      </p>
+      <div id="log" class="log">
+        <h2>日志</h2>
+      </div>
+    </div>
+    <script type="text/javascript">
+      document.addEventListener("DOMContentLoaded", function() {
+        // 如果浏览器不支持 meta refresh，则使用 JavaScript 重定向
+        var path = window.location.pathname;
+        var logContainer = document.getElementById("log");
+        var countdownElement = document.getElementById("countdown");
+        var redirectLink = document.getElementById("redirect-link");
+        var countdown = 5;
+
+        function updateCountdown() {
+          countdownElement.textContent = countdown;
+          if (countdown > 0) {
+            countdown--;
+            setTimeout(updateCountdown, 1000);
+          } else {
+            if (path !== "/") {
+              var newUrl = "/" + path.substring(1);
+              console.log("当前路径:", path);
+              console.log("重定向到:", newUrl);
+              logContainer.innerHTML += "<p>当前路径: " + path + "</p>";
+              logContainer.innerHTML += "<p>重定向到: " + newUrl + "</p>";
+              window.location.href = newUrl;
+            } else {
+              console.log("当前路径是根路径，无需重定向");
+              logContainer.innerHTML += "<p>当前路径是根路径，无需重定向</p>";
+            }
+          }
+        }
+
+        // 更新重定向链接
+        if (path !== "/") {
+          redirectLink.href = "/" + path.substring(1);
+        }
+
+        updateCountdown();
+      });
+    </script>
+  </body>
+</html>

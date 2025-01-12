@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, createWebHashHistory } from "vue-router";
 
 import MainApplication from "./components/MainApplication.vue";
 import LoginManager from "./components/LoginManager.vue";
@@ -12,8 +12,11 @@ const routes = [
   { path: `${base}login`, component: LoginManager, name: 'login' },
 ];
 
+export const RouterMode = 'history';
+
 const router = createRouter({
-  history: createWebHistory(),
+  // history: createWebHistory(),
+  history: RouterMode === 'history' ? createWebHistory(base) : createWebHashHistory(base),
   routes,
 });
 
