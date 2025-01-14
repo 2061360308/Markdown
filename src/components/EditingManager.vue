@@ -2,7 +2,7 @@
 import { defineProps, onMounted, ref } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { ElMessage, ElMessageBox } from "element-plus";
-import fs from "@/utils/githubFs/fs";
+import fs from "@/utils/fs";
 
 const props = defineProps({
   frontMatter: {

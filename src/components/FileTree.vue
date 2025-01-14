@@ -15,8 +15,8 @@ import {
   ContextMenuItem,
 } from "@imengyu/vue3-context-menu";
 
-import fs from "@/utils/githubFs/fs";
-import api from "@/utils/githubFs/api";
+import fs from "@/utils/fs";
+import api from "@/utils/api";
 
 const loading = ref(false);
 

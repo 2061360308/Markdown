@@ -4,7 +4,7 @@ import { ElMessageBox, ElMessage, ElInput } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { ref, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import api from "@/utils/githubFs/api";
+import api from "@/utils/api";
 import { encryptToken, decryptToken } from "@/utils/encryptToken";
 
 const route = useRoute();

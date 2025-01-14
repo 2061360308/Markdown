@@ -3,7 +3,7 @@ import { ref, onMounted } from "vue";
 import { ElButton, ElInput } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-import fs from "@/utils/githubFs/fs";
+import fs from "@/utils/fs";
 
 const loading = ref(false);
 const isRotating = ref(false);

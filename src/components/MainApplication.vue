@@ -10,7 +10,7 @@ import DiffManager from "./DiffManager.vue";
 import EditingManager from "./EditingManager.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { useRouter } from "vue-router";
-import api from "@/utils/githubFs/api";
+import api from "@/utils/api";
 
 const leftPaneSize = ref(20);
 const activeMenu = ref("files");

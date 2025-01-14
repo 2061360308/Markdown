@@ -13,7 +13,7 @@ import {
 import { EventBusType, EventBus } from "@/eventBus";
 import { ElMessage, ElMessageBox } from "element-plus";
 
-import fs from "@/utils/githubFs/fs";
+import fs from "@/utils/fs";
 import { splitFrontMatter, stringifyFrontMatter } from "@/utils/frontMatter";
 import {
   ContextMenu,
