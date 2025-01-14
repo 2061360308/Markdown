@@ -3,25 +3,11 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
-import { resolve } from 'path';
-import { copyFileSync } from 'fs';
+import { VitePWA } from "vite-plugin-pwa";
 import vueDevTools from "vite-plugin-vue-devtools";
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
-
-// 自定义插件，用于在构建后复制 404.html 文件
-function copy404Plugin() {
-  return {
-    name: "copy-404",
-    closeBundle() {
-      const src = resolve(__dirname, "404.html");
-      const dest = resolve(__dirname, "dist", "404.html");
-      copyFileSync(src, dest);
-      console.log("404.html 文件已复制到构建输出目录");
-    },
-  };
-}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -29,8 +15,46 @@ export default defineConfig({
   plugins: [
     vue(),
     vueJsx(),
+    VitePWA({
+      registerType: "autoUpdate",
+      manifest: {
+        name: "InkStone",
+        short_name: "InkStone",
+        theme_color: "#dde3e9",
+        background_color: "#dde3e9",
+        display: "standalone",
+        scope: "/",
+        start_url: "/",
+        icons: [
+          {
+            src: "img/icons/android-chrome-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "img/icons/android-chrome-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: 'img/icons/icon-144x144.png',
+            sizes: '144x144',
+            type: 'image/png'
+          },
+          {
+            src: 'img/icons/icon-256x256.png',
+            sizes: '256x256',
+            type: 'image/png'
+          },
+        ],
+      },
+      injectManifest: {
+        // 自定义 Service Worker 文件路径
+        swSrc: 'src/pwa/service-worker.js',
+        swDest: 'service-worker.js',
+      },
+    }),
     vueDevTools(),
-    copy404Plugin(),
     AutoImport({
       resolvers: [ElementPlusResolver()],
     }),

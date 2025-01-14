@@ -33,7 +33,7 @@ onMounted(async () => {
     (route.query.repo as string | null) || localStorage.getItem("repo") || "";
   access_token =
     route.query.access_token ||
-    decryptToken(localStorage.getItem("access_token")) ||
+    decryptToken(localStorage.getItem("access_token") || "") ||
     "";
 
   if (repo.value) {
@@ -129,6 +129,10 @@ const setRepoLogin = () => {
   localStorage.setItem("repo", repo.value);
   window.location.reload();
 };
+
+const jumpLogin = () => {
+  router.replace({ name: "main" });
+};
 </script>
 
 <template>
@@ -143,8 +147,22 @@ const setRepoLogin = () => {
         />
       </div>
       <div class="right" v-if="!chooseRepo">
-        <div>
+        <div class="title-box">
           <h2>后台登录</h2>
+          <el-tooltip
+            class="box-item"
+            effect="dark"
+            content="跳过登录，只使用编辑器基础功能"
+            placement="right-start"
+          >
+            <el-tag
+              class="jump"
+              type="primary"
+              effect="light"
+              @click="jumpLogin"
+              >跳过</el-tag
+            >
+          </el-tooltip>
         </div>
         <div>
           <el-button
@@ -180,7 +198,9 @@ const setRepoLogin = () => {
               content="Token将被保存到本地，请注意秘钥安全"
               placement="top"
             >
-              <el-checkbox v-model="remember" @change="changeRemember">保持登录</el-checkbox>
+              <el-checkbox v-model="remember" @change="changeRemember"
+                >保持登录</el-checkbox
+              >
               <!-- <el-radio :value="true" v-model="remember" @click="changeRemember"></el-radio> -->
             </el-tooltip>
           </span>
@@ -273,6 +293,18 @@ const setRepoLogin = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.title-box {
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  cursor: default;
+}
+
+.title-box .jump {
+  margin-left: 10px;
+  font-size: 14px;
 }
 
 .right {

@@ -1,15 +1,8 @@
 <script setup lang="ts">
-import { defineProps, onMounted, ref } from "vue";
+import {onMounted, ref } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { ElMessage, ElMessageBox } from "element-plus";
 import fs from "@/utils/fs";
-
-const props = defineProps({
-  frontMatter: {
-    type: Object,
-    required: true,
-  },
-});
 
 const form = ref({
   name: "",
@@ -41,10 +34,7 @@ const currentCommit = () => {
   console.log("commit!");
 };
 
-onMounted(() => {
-  console.log("frontMatterBlock mounted");
-  console.log(props.frontMatter);
-});
+onMounted(() => {});
 
 const refreshClicked = () => {
   console.log("refreshClicked");

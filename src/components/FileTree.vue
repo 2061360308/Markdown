@@ -2,9 +2,7 @@
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { SlVueTreeNext } from "sl-vue-tree-next";
 import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
-
 import { ref, onMounted, nextTick } from "vue";
-
 import { ElSelect, ElOption, ElMessage, ElMessageBox } from "element-plus";
 
 import { EventBusType, EventBus } from "@/eventBus";
@@ -14,9 +12,14 @@ import {
   ContextMenuSeparator,
   ContextMenuItem,
 } from "@imengyu/vue3-context-menu";
+import { useRouter } from "vue-router";
 
 import fs from "@/utils/fs";
 import api from "@/utils/api";
+
+import { useTabsStore } from "@/stores";
+
+const tabsStore = useTabsStore();
 
 const loading = ref(false);
 
@@ -45,6 +48,12 @@ const treeTypes = ref([
 ]);
 
 let fileTree = ref<any[]>([]);
+
+const router = useRouter();
+
+const goLogin = () => {
+  router.replace({ name: "login" });
+};
 
 // 转换 GitHub API 返回的文件目录树为所需格式
 const transformRemoteTree = (tree: any) => {
@@ -190,6 +199,15 @@ const mixTree = (local: any[], remote: any[]) => {
 const updateTree = async () => {
   loading.value = true;
   if (selectTreeType.value === "remote") {
+    if (!api.ready) {
+      loading.value = false;
+      selectTreeType.value = "mixed";
+      ElMessage({
+        type: "warning",
+        message: "请先登录",
+      });
+      return;
+    }
     api.getRepoTree().then((res) => {
       let tree = transformRemoteTree(res.tree);
       fileTree.value = tree;
@@ -202,16 +220,22 @@ const updateTree = async () => {
       loading.value = false;
     });
   } else {
-    let remote = await api.getRepoTree();
-    let remote_tree = transformRemoteTree(remote.tree);
-    console.log("local", remote_tree);
+    let remote_tree: any[] = [];
+    if (api.ready) {
+      // 没有登录时不请求远程文件树
+      let remote = await api.getRepoTree();
+      remote_tree = transformRemoteTree(remote.tree);
+    }
+
     let local = await fs.list();
     let local_tree = transformLocalTree(local);
-    console.log("local", local_tree);
     let mixed_tree = await mixTree(local_tree, remote_tree);
-    console.log("mixed", mixed_tree);
     fileTree.value = mixed_tree;
     loading.value = false;
+    ElMessage({
+      type: "success",
+      message: "文件树已更新",
+    });
   }
 };
 
@@ -230,7 +254,7 @@ const nodeSelected = (selectedNodes: string | any[]) => {
 
   if (node.isLeaf) {
     let path = node.data.path;
-    openFile(path);
+    tabsStore.openFile(path);
   }
 };
 
@@ -265,14 +289,20 @@ const showContextMenu = (
   if (selectTreeType.value !== "mixed") {
     return;
   }
-  console.log("showContextMenu:", node);
+
   current_clicked_node = node;
+  console.log("showContextMenu", node);
   event.preventDefault();
   optionsComponent.value = {
     x: event.clientX,
     y: event.clientY,
   };
   menuVisible.value = true;
+};
+
+const titleBarCreateClick = () => {
+  current_clicked_node = null;
+  showCreateFileDialog({ target: { dataset: { filetype: "file" } } });
 };
 
 // 删除文件
@@ -303,7 +333,8 @@ const deleteFile = (e: any) => {
           updateTree();
         });
       })
-      .catch(() => {
+      .catch((e) => {
+        console.log("deleteFile", e);
         ElMessage({
           type: "info",
           message: "已取消删除",
@@ -330,7 +361,8 @@ const deleteFile = (e: any) => {
           updateTree();
         });
       })
-      .catch(() => {
+      .catch((e) => {
+        console.log("deleteFile", e);
         ElMessage({
           type: "info",
           message: "已取消删除",
@@ -342,7 +374,9 @@ const deleteFile = (e: any) => {
 const showCreateFileDialog = (e: { target: any }) => {
   let create_folder;
 
-  if (current_clicked_node.data.type === "tree") {
+  if (current_clicked_node === null) {
+    create_folder = "";
+  } else if (current_clicked_node.data.type === "tree") {
     create_folder = current_clicked_node.data.path;
   } else {
     create_folder = current_clicked_node.data.path.substring(
@@ -353,8 +387,8 @@ const showCreateFileDialog = (e: { target: any }) => {
 
   let target = e.target;
 
-  // 向上遍历 DOM 树，直到找到具有 data-type 属性的父元素
-  while (target && !target.dataset.type) {
+  // 向上遍历 DOM 树，直到找到具有 data-filetype 属性的父元素
+  while (target && !target.dataset.filetype) {
     target = target.parentElement;
   }
 
@@ -371,7 +405,6 @@ const showCreateFileDialog = (e: { target: any }) => {
 };
 
 const createFile = () => {
-  console.log("createFile", createFileValue.value);
   let path =
     createFileValue.value.fileFolder + "/" + createFileValue.value.fileName;
   // 去除多余的斜杠
@@ -432,7 +465,21 @@ const createFile = () => {
 
 <template>
   <div class="file-tree-box" v-loading="loading">
-    <div class="title">文件管理器</div>
+    <div class="title-bar">
+      <div class="title">资源管理器</div>
+      <div class="actions">
+        <el-button circle @click="titleBarCreateClick">
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'file']" size="lg" />
+          </template>
+        </el-button>
+        <el-button circle @click="updateTree">
+          <template #icon>
+            <font-awesome-icon :icon="['fas', 'arrows-rotate']" size="lg" />
+          </template>
+        </el-button>
+      </div>
+    </div>
     <el-select
       class="select-tree-type"
       v-model="selectTreeType"
@@ -449,7 +496,18 @@ const createFile = () => {
         :value="item.value"
       />
     </el-select>
-    <div class="file-tree-inner-box">
+    <div class="no-login-tip" v-if="!api.ready">
+      登录后可使用完整功能
+      <el-button type="primary" size="small" round @click="goLogin"
+        >登录</el-button
+      >
+    </div>
+    <div
+      class="file-tree-inner-box"
+      :style="{
+        height: api.ready ? 'calc(100% - 70px)' : 'calc(100% - 140px)',
+      }"
+    >
       <sl-vue-tree-next
         :modelValue="fileTree"
         ref="slVueTree"
@@ -463,8 +521,19 @@ const createFile = () => {
       >
         <template #title="{ node }">
           <span class="item-icon">
-            <i class="fa-solid fa-file" v-if="node.isLeaf"></i>
-            <i class="fa-solid fa-folder" v-if="!node.isLeaf"></i>
+            <FontAwesomeIcon
+              v-if="node.isLeaf && node.data.path.endsWith('.md')"
+              :icon="['fas', 'square-pen']"
+              style="color: var(--el-color-primary);"
+            />
+            <FontAwesomeIcon
+              v-else-if="node.isLeaf"
+              :icon="['fas', 'file']"
+            />
+            <FontAwesomeIcon
+              v-else
+              :icon="['fas', 'folder']"
+            />
           </span>
           {{ node.title }}
         </template>
@@ -593,28 +662,58 @@ const createFile = () => {
   height: 100%;
 }
 
-.title {
+.title-bar {
+  padding: 10px;
+  height: 40px;
+  white-space: nowrap; /* 确保内容不会换行 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 5px;
+}
+
+.title-bar .title {
   font-size: 16px;
   font-weight: bold;
-  padding: 10px;
-  white-space: nowrap; /* 确保内容不会换行 */
-  height: 40px;
+}
+
+.title-bar .actions {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: end;
+  align-items: center;
 }
 
 .select-tree-type {
   width: 100%;
 }
 
+.no-login-tip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px;
+  padding: 10px 20px;
+  background-color: var(--el-color-primary-light-3);
+  color: var(--el-color-white);
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.no-login-tip .el-button {
+  margin-left: 10px;
+}
+
 .file-tree-inner-box {
-  height: calc(100% - 40px);
   overflow: auto;
-  white-space: nowrap; /* 确保内容不会换行 */
+  white-space: nowrap;
 }
 
 .sl-vue-tree-next {
   min-height: 100%;
   min-width: 100%;
-  white-space: nowrap; /* 确保内容不会换行 */
+  white-space: nowrap;
 }
 
 .sl-vue-tree-next.sl-vue-tree-next-root {
@@ -627,6 +726,10 @@ const createFile = () => {
 .sl-vue-tree-next-selected > .sl-vue-tree-next-node-item {
   background-color: var(--el-color-primary);
   color: var(--el-color-white);
+}
+
+.sl-vue-tree-next-selected .item-icon svg{
+  color: var(--el-color-white) !important;
 }
 
 .sl-vue-tree-next-node-item:hover,

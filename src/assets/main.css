@@ -1,4 +1,11 @@
 @import './base.css';
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+@import "element-plus/dist/index.css";
+@import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
+
+* {
+  user-select: none;
+}
 
 /* #app {
   max-width: 1280px;

@@ -21,6 +21,9 @@ import {
   ContextMenuSeparator,
   ContextMenuItem,
 } from "@imengyu/vue3-context-menu";
+import { useTabsStore } from "@/stores";
+
+const tabsStore = useTabsStore();
 
 const props = defineProps({
   // 编辑器名称/id
@@ -82,6 +85,10 @@ let currentFrontMatterIndex = 0;
 
 const isFrontMatterFold = ref(false); // 文档属性折叠标识
 
+const isAllSaved = ref(true); // 是否全部保存
+
+const totalWordsNum = ref(0)
+
 const createVditorInstance = () => {
   /**
    * 创建 Vditor 实例
@@ -89,6 +96,7 @@ const createVditorInstance = () => {
 
   // 等待下一个 tick 确保组件已渲染
   nextTick(() => {
+    console.log("createVditorInstance", props.editor);
     vditorInstance = new Vditor(props.editor, {
       value:
         "# Hello Vditor!\n\n这是编辑器预设内容，如果你看到这段文字代表内容没有被正确显示！",
@@ -157,13 +165,13 @@ const createVditorInstance = () => {
 
         // 读取文件内容
         openFile(props.path);
-        let eventBus: EventBus = new EventBus(
-          EventBusType.VditorInstanceCreated
-        );
-        eventBus.emit({
-          name: props.editor,
-          vditorInstance: vditorInstance,
-        });
+
+        if (vditorInstance) {
+          (vditorInstance as any).getContent = getContent; // 获取编辑器内容
+          (vditorInstance as any).isAllSaved = isAllSaved; // 保存文件
+        }
+
+        tabsStore.vditorInstance[props.editor] = vditorInstance;
       },
     });
   });
@@ -255,7 +263,6 @@ const getContent = () => {
 };
 
 const saveFile = () => {
-  console.log("saveFile");
   const file_path = props.path;
   const file_content = getContent();
   console.log("saveFile file_content", file_content);
@@ -268,15 +275,17 @@ const saveFile = () => {
       type: "success",
     });
   });
+
+  isAllSaved.value = true;
 };
 
-const inputHandler = (e: string | any[]) => {
+const inputHandler = (value: string | any[]) => {
   /**
    * 编辑器内容变化时触发
    * 用于更新编辑器状态栏右下角的字数统计
    */
-  let eventBus: EventBus = new EventBus(EventBusType.FileChanged);
-  eventBus.emit(e.length);
+  totalWordsNum.value = value.length;
+  isAllSaved.value = false;
 };
 
 const showTypeSelectMenu = (event: MouseEvent, index: number) => {
@@ -694,6 +703,36 @@ const attributeValueInputComplate = (index: number) => {
       </div>
       <div :id="editor" class="md-editor"></div>
     </div>
+
+    <div class="editor-status">
+      <div class="status-bar-item">
+        <div class="changes" v-if="isAllSaved">
+          <span class="icon">
+            <font-awesome-icon
+              style="color: var(--el-color-success)"
+              :icon="['fas', 'circle-check']"
+            />
+          </span>
+          <span>已保存</span>
+        </div>
+        <div class="all-saved" v-else>
+          <span class="icon">
+            <font-awesome-icon
+              style="color: var(--el-color-danger)"
+              :icon="['fas', 'circle-exclamation']"
+            />
+          </span>
+          <span>更改未保存</span>
+        </div>
+      </div>
+
+      <div class="status-bar-item">
+        <div class="icon">
+          <font-awesome-icon :icon="['fas', 'won-sign']" />
+        </div>
+        <span>总字数：{{ totalWordsNum }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -710,6 +749,26 @@ const attributeValueInputComplate = (index: number) => {
 .el-front-matter-custom .el-textarea__inner:focus-within,
 .el-front-matter-custom:focus-within {
   background-color: antiquewhite;
+}
+</style>
+
+<style>
+.vditor {
+  border: none !important;
+  height: 100% !important;
+}
+
+.vditor-toolbar {
+  padding: 0 !important;
+}
+
+.vditor-reset {
+  overflow: visible !important;
+  padding: 0 40px !important;
+}
+
+.vditor-outline {
+  display: none !important;
 }
 </style>
 
@@ -758,7 +817,7 @@ const attributeValueInputComplate = (index: number) => {
 
 .md-editor-box {
   width: 100%;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 20px);
   /* width: 100%; */
   overflow: auto;
   background-color: #fafbfc;
@@ -772,24 +831,43 @@ const attributeValueInputComplate = (index: number) => {
   height: auto !important;
   min-height: 500px;
 }
-</style>
 
-<style>
-.vditor {
-  border: none !important;
-  height: 100% !important;
+.editor-status {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+
+  height: 20px;
+  padding: 0 10px;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-secondary-text);
+
+  border-radius: 20px 0 0 0;
+
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px;
+  font-size: 14px;
+  color: #666;
 }
 
-.vditor-toolbar {
-  padding: 0 !important;
+.status-bar-item {
+  display: flex;
+  align-items: center;
+  /* 鼠标指针 */
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 5px;
+  margin: 0 10px;
+  color: var(--el-color-white);
 }
 
-.vditor-reset {
-  overflow: visible !important;
-  padding: 0 40px !important;
+.status-bar-item:hover {
+  background-color: var(--el-color-primary-light-7);
+  color: var(--el-color-secondary-text);
 }
 
-.vditor-outline {
-  display: none !important;
+.status-bar-item .icon {
+  margin-right: 5px;
 }
 </style>
