@@ -96,6 +96,8 @@ const loginByToken = () => {
   } else {
     access_token = inputToken.value;
     localStorage.setItem("access_token", encryptToken(access_token));
+    // 刷新页面
+    window.location.reload();
   }
 };
 

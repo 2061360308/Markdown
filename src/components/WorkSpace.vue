@@ -42,7 +42,7 @@ const tabsStore = useTabsStore();
       </el-tab-pane>
     </el-tabs>
     <div class="empty-box" v-else>
-      <el-empty>
+      <el-empty image="cover.png" :image-size="550">
         <template #description>
           <span>请在左侧文件管理器中选择文件打开</span>
         </template>

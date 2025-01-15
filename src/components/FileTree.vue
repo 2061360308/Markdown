@@ -12,14 +12,16 @@ import {
   ContextMenuSeparator,
   ContextMenuItem,
 } from "@imengyu/vue3-context-menu";
-import { useRouter } from "vue-router";
+import { format } from "date-fns";
 
 import fs from "@/utils/fs";
 import api from "@/utils/api";
 
-import { useTabsStore } from "@/stores";
+import { useSettingsStore, useTabsStore, useGlobalStore } from "@/stores";
 
 const tabsStore = useTabsStore();
+const settingsStore = useSettingsStore();
+const globalStore = useGlobalStore();
 
 const loading = ref(false);
 
@@ -48,12 +50,6 @@ const treeTypes = ref([
 ]);
 
 let fileTree = ref<any[]>([]);
-
-const router = useRouter();
-
-const goLogin = () => {
-  router.replace({ name: "login" });
-};
 
 // 转换 GitHub API 返回的文件目录树为所需格式
 const transformRemoteTree = (tree: any) => {
@@ -254,7 +250,27 @@ const nodeSelected = (selectedNodes: string | any[]) => {
 
   if (node.isLeaf) {
     let path = node.data.path;
-    tabsStore.openFile(path);
+    if (selectTreeType.value === "remote") {
+      console.log("remote只读");
+    } else if (selectTreeType.value === "local") {
+      tabsStore.openFile(path);
+    } else {
+      if (node.data.posititon === "remote") {
+        loading.value = true;
+        // 从远程仓库下载文件
+        api.getFileContent(path).then((res) => {
+          let content = res.decodedContent;
+          fs.write(path, content).then((res) => {
+            tabsStore.openFile(path); // 打开文件
+            loading.value = false;
+            updateTree();
+          });
+        });
+      } else {
+        // 本地文件，打开
+        tabsStore.openFile(path);
+      }
+    }
   }
 };
 
@@ -446,9 +462,10 @@ const createFile = () => {
       fileNameWithExtension.lastIndexOf(".")
     );
     console.log("fileName", fileName);
-    const formattedDate = new Date()
-      .toISOString()
-      .replace(/\.\d{3}Z$/, "-08:00");
+    const formattedDate = format(
+      new Date(),
+      settingsStore.settings["编辑器配置"].defaultFrontMatter
+    );
     content = `---\ntitle: ${fileName}\ndata: ${formattedDate}\ndraft: false\n---`;
   }
 
@@ -498,7 +515,7 @@ const createFile = () => {
     </el-select>
     <div class="no-login-tip" v-if="!api.ready">
       登录后可使用完整功能
-      <el-button type="primary" size="small" round @click="goLogin"
+      <el-button type="primary" size="small" round @click="globalStore.goLogin"
         >登录</el-button
       >
     </div>
@@ -518,22 +535,17 @@ const createFile = () => {
         @toggle="nodeToggled"
         @nodecontextmenu="showContextMenu"
         class="sl-vue-tree-next"
+        v-if="fileTree.length > 0"
       >
         <template #title="{ node }">
           <span class="item-icon">
             <FontAwesomeIcon
               v-if="node.isLeaf && node.data.path.endsWith('.md')"
               :icon="['fas', 'square-pen']"
-              style="color: var(--el-color-primary);"
+              style="color: var(--el-color-primary)"
             />
-            <FontAwesomeIcon
-              v-else-if="node.isLeaf"
-              :icon="['fas', 'file']"
-            />
-            <FontAwesomeIcon
-              v-else
-              :icon="['fas', 'folder']"
-            />
+            <FontAwesomeIcon v-else-if="node.isLeaf" :icon="['fas', 'file']" />
+            <FontAwesomeIcon v-else :icon="['fas', 'folder']" />
           </span>
           {{ node.title }}
         </template>
@@ -573,6 +585,7 @@ const createFile = () => {
 
         <!-- <template #draginfo="draginfo"> {{ selectedNodesTitle }} </template> -->
       </sl-vue-tree-next>
+      <el-empty v-else description="点击右上角创建文件" />
     </div>
     <context-menu v-model:show="menuVisible" :options="optionsComponent">
       <context-menu-group label="新建" icon="fas fa-plus">
@@ -728,7 +741,7 @@ const createFile = () => {
   color: var(--el-color-white);
 }
 
-.sl-vue-tree-next-selected .item-icon svg{
+.sl-vue-tree-next-selected .item-icon svg {
   color: var(--el-color-white) !important;
 }
 

@@ -29,6 +29,7 @@ export const useSettingsStore = defineStore("settings", () => {
   const repoBranch = ref<string>(""); // 使用的仓库分支
   const repoPath = ref<string>(""); // 使用的仓库根路径
   const defaultFrontMatter = ref<string>(""); // 默认创建文章时的 front matter
+  const dateTimeFormat = ref<string>("yyyy-MM-dd'T'HH:mm:ssxxxxx"); // 日期时间格式
   const editorDefaultMode = ref<EditorMode>(EditorMode.IR); // 默认编辑器模式
   const editorMaxWidth = ref<number>(800); // 编辑器最大宽度
   const editorTypewriterMode = ref<boolean>(false); // 打字机模式
@@ -41,6 +42,7 @@ export const useSettingsStore = defineStore("settings", () => {
     repoBranch: InputType.lineInput,
     repoPath: InputType.lineInput,
     defaultFrontMatter: InputType.textInput,
+    dateTimeFormat: InputType.lineInput,
     editorDefaultMode: InputType.selectInput,
     editorMaxWidth: InputType.numberInput,
     editorTypewriterMode: InputType.booleanInput,
@@ -54,6 +56,7 @@ export const useSettingsStore = defineStore("settings", () => {
     repoBranch: "仓库分支",
     repoPath: "仓库路径",
     defaultFrontMatter: "默认 front matter",
+    dateTimeFormat: "日期时间格式",
     editorDefaultMode: "默认编辑器模式",
     editorMaxWidth: "编辑器最大宽度",
     editorTypewriterMode: "打字机模式",
@@ -67,6 +70,7 @@ export const useSettingsStore = defineStore("settings", () => {
     repoBranch: "仓库分支：指定要使用的远程仓库分支。",
     repoPath: "仓库路径：指定本地仓库的路径。",
     defaultFrontMatter: "默认 front matter：用于新建文件时的默认 front matter 配置。",
+    dateTimeFormat: "日期时间格式：设置日期时间的格式，用于 front matter 中的日期时间字段。",
     editorDefaultMode: "默认编辑器模式：设置编辑器的默认模式，例如 Markdown 或富文本。",
     editorMaxWidth: "编辑器最大宽度：设置编辑器的最大显示宽度。",
     editorTypewriterMode: "打字机模式：启用或禁用打字机模式，使当前行始终保持在视图中间。",
@@ -94,7 +98,7 @@ export const useSettingsStore = defineStore("settings", () => {
     editorDefaultMode: [EditorMode.WYSIWYG, EditorMode.IR, EditorMode.SV],
   }
 
-  const settings: Record<string, Record<string, Ref<any>>> = {
+  const settings: Record<string, Record<string, any>> = {
     基本配置: {
       themeName: themeName,
       repoName: repoName,
@@ -103,6 +107,7 @@ export const useSettingsStore = defineStore("settings", () => {
     },
     编辑器配置: {
       defaultFrontMatter: defaultFrontMatter,
+      dateTimeFormat: dateTimeFormat,
       editorDefaultMode: editorDefaultMode,
       editorMaxWidth: editorMaxWidth,
       editorTypewriterMode: editorTypewriterMode,

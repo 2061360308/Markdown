@@ -3,7 +3,6 @@ import api from "./api.js";
 import Dexie from "dexie";
 
 class Fs {
-
   db!: Dexie;
   static instance: Fs | null = null;
   api: any = api;
@@ -17,7 +16,7 @@ class Fs {
     this.db = new Dexie("FileDB");
 
     this.db.version(2).stores({
-      files: "path, content, original_sha"
+      files: "path, content, original_sha",
     });
 
     Fs.instance = this;
@@ -29,7 +28,7 @@ class Fs {
     return count > 0;
   };
 
-  write = async (path: string, content='') => {
+  write = async (path: string, content = "") => {
     /**
      * 写入文件
      */
@@ -39,7 +38,7 @@ class Fs {
     };
     await this.db.files.put(file);
     return true;
-  }
+  };
 
   get = async (path: string) => {
     /**
@@ -50,7 +49,7 @@ class Fs {
     }
     let file = await this.db.files.get(path);
     return file.content;
-  }
+  };
 
   delete = async (path: string) => {
     // 删除文件
@@ -61,13 +60,12 @@ class Fs {
     return true;
   };
 
-  list = async () => {
+  list = async (): Promise<string[]> => {
     // 获取所有文件
     let files = await this.db.files.toArray();
-    if (!files){
+    if (!files) {
       return [];
     }
-    console.log(files, files.map((file) => file.path));
     return files.map((file) => file.path);
   };
 }

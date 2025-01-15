@@ -1,22 +1,96 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { ElButton, ElInput } from "element-plus";
+import { ElButton, ElInput, ElMessage, ElMessageBox } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-
+import CryptoJS from "crypto-js";
+import api from "@/utils/api";
 import fs from "@/utils/fs";
+import { useGlobalStore } from "@/stores";
+
+const globalStore = useGlobalStore();
 
 const loading = ref(false);
 const isRotating = ref(false);
 const messageInput = ref("");
-const diff_files = ref([]);
+
+enum FileAction {
+  CREATE = "create",
+  UPDATE = "update",
+}
+type File = [string, FileAction];
+type DiffFiles = File[];
+
+type remoteTree = {
+  sha: string;
+  url: string;
+  truncated: boolean;
+  tree: {
+    path?: string;
+    mode?: string;
+    type?: string;
+    sha?: string;
+    size?: number;
+    url?: string;
+  }[];
+};
+
+const diff_files = ref<DiffFiles>([]);
 
 onMounted(() => {
-  refreshDiffData();
+  if (api.ready) {
+    refreshDiffData();
+  }
 });
+
+const calculateFileSha = async (filePath: string): Promise<string> => {
+  const getStringByteLength = (content: string) => {
+    var totalLength = 0;
+    var charCode;
+    for (var i = 0; i < content.length; i++) {
+      charCode = content.charCodeAt(i);
+      if (charCode < 0x007f) {
+        totalLength++;
+      } else if (0x0080 <= charCode && charCode <= 0x07ff) {
+        totalLength += 2;
+      } else if (0x0800 <= charCode && charCode <= 0xffff) {
+        totalLength += 3;
+      } else {
+        totalLength += 4;
+      }
+    }
+    return totalLength;
+  };
+  const fileContent = await fs.get(filePath);
+  const size = new TextEncoder().encode(fileContent).length;
+  const header = `blob ${size}\0`;
+  const store = header + fileContent;
+
+  const sha1 = CryptoJS.SHA1(CryptoJS.enc.Utf8.parse(store)).toString();
+  return sha1;
+};
 
 const refreshDiffData = async () => {
   loading.value = true;
-  let files = await fs.getDiffFiles();
+  let files: DiffFiles = [];
+  let remoteTree: remoteTree = await api.getRepoTree();
+  let remoteItems: Record<string, string> = {};
+  remoteTree.tree.forEach((item) => {
+    if (item.path && item.sha) {
+      remoteItems[item.path] = item.sha;
+    }
+  });
+  let localItems: string[] = await fs.list();
+  for (const item of localItems) {
+    if (remoteItems[item]) {
+      let sha = await calculateFileSha(item);
+      console.log(sha, remoteItems[item]);
+      if (sha !== remoteItems[item]) {
+        files.push([item, FileAction.UPDATE]);
+      }
+    } else {
+      files.push([item, FileAction.CREATE]);
+    }
+  }
   diff_files.value = files;
   loading.value = false;
 
@@ -38,7 +112,7 @@ const refreshClicked = () => {
 
 const gender_commit_message = () => {
   let commitMessage = "feat: Update blog articles\n\n";
-  const changes = {
+  const changes: Record<string, Array<string>> = {
     create: [],
     delete: [],
     change: [],
@@ -46,11 +120,9 @@ const gender_commit_message = () => {
 
   diff_files.value.forEach(([filePath, action]) => {
     console.log(filePath, action);
-    if (action === "create") {
+    if (action === FileAction.CREATE) {
       changes.create.push(filePath);
-    } else if (action === "delete") {
-      changes.delete.push(filePath);
-    } else if (action === "update") {
+    } else if (action === FileAction.UPDATE) {
       changes.change.push(filePath);
     }
   });
@@ -79,14 +151,15 @@ const gender_commit_message = () => {
   messageInput.value = commitMessage;
 };
 
-const undo = (file) => {
-  let all_files = [];
+const undo = (file: string | null = null) => {
+  let all_files: string[] = [];
+  let undoFiles: string[] = [];
   for (const i in diff_files.value) {
     all_files.push(diff_files.value[i][0]);
   }
 
   if (!file) {
-    file = all_files;
+    undoFiles = all_files;
   } else {
     if (all_files.indexOf(file) === -1) {
       ElMessage({
@@ -95,7 +168,7 @@ const undo = (file) => {
       });
       return;
     } else {
-      file = [file];
+      undoFiles = [file];
     }
   }
 
@@ -109,8 +182,8 @@ const undo = (file) => {
     }
   )
     .then(() => {
-      file.forEach((f) => {
-        fs.unRemove(f);
+      undoFiles.forEach((f) => {
+        fs.delete(f);
       });
       refreshDiffData();
       ElMessage({
@@ -142,13 +215,13 @@ const commit = async () => {
   const files = [];
   for (const file of diff_files.value) {
     const filePath = file[0];
-    const fileContent = await fs.read(filePath);
+    const fileContent = await fs.get(filePath);
     files.push({ path: filePath, content: fileContent });
   }
 
   console.log(files);
 
-  githubApi.commitChanges(files, message).then(() => {
+  api.commitChanges(files, message).then(() => {
     ElMessage({
       type: "success",
       message: "Commit success",
@@ -162,96 +235,98 @@ const commit = async () => {
 <template>
   <div class="diff-manager" v-loading="loading">
     <div class="title">差异管理器</div>
-    <div class="commit-box">
-      <el-input
-        v-model="messageInput"
-        :autosize="{ minRows: 2, maxRows: 4 }"
-        type="textarea"
-        placeholder="commit message"
-        clearable
-      />
-      <el-button
-        type="primary"
-        :disabled="diff_files.length <= 0"
-        @click="commit"
-        >提交</el-button
-      >
-    </div>
-    <div class="operation-box">
-      <div class="title">更改列表</div>
-      <div>
-        <el-tooltip
-          class="box-item"
-          effect="dark"
-          content="刷新数据"
-          placement="bottom"
-          ><font-awesome-icon
-            style="margin-right: 15px"
-            :icon="['fas', 'arrows-rotate']"
-            :size="'sm'"
-            @click="refreshClicked"
-            :class="{ 'rotate-animation': isRotating }"
-        /></el-tooltip>
-        <el-tooltip
-          class="box-item"
-          effect="dark"
-          content="放弃所有更改"
-          placement="bottom"
-          ><font-awesome-icon
-            class="undo_all"
-            :icon="['fas', 'rotate-left']"
-            :size="'sm'"
-            @click="undo()"
-        /></el-tooltip>
+    <div v-if="api.ready">
+      <div class="commit-box">
+        <el-input
+          v-model="messageInput"
+          :autosize="{ minRows: 2, maxRows: 4 }"
+          type="textarea"
+          placeholder="commit message"
+          clearable
+        />
+        <el-button
+          type="primary"
+          :disabled="diff_files.length <= 0"
+          @click="commit"
+          >提交</el-button
+        >
       </div>
-    </div>
-    <div class="diff-box">
-      <div class="diff-item" v-for="file in diff_files" :key="file[0]">
-        <div class="file-info">
-          <span class="file-name">{{ file[0].split("/").pop() }}</span>
+      <div class="operation-box">
+        <div class="title">更改列表</div>
+        <div>
           <el-tooltip
             class="box-item"
             effect="dark"
-            :content="file[0]"
-            placement="right"
-            ><span class="file-path">{{
-              file[0].split("/").slice(0, -1).join("/")
-            }}</span></el-tooltip
-          >
-        </div>
-        <div class="others">
-          <el-tooltip
-            class="box-item"
-            effect="dark"
-            content="放弃更改"
+            content="刷新数据"
             placement="bottom"
             ><font-awesome-icon
-              class="undo"
-              :icon="['fas', 'rotate-left']"
-              :size="'xs'"
-              @click="undo(file[0])"
+              style="margin-right: 15px"
+              :icon="['fas', 'arrows-rotate']"
+              :size="'sm'"
+              @click="refreshClicked"
+              :class="{ 'rotate-animation': isRotating }"
           /></el-tooltip>
-
-          <font-awesome-icon
-            v-if="file[1] === 'update'"
-            :icon="['fas', 'u']"
-            :size="'xs'"
-            style="color: var(--el-color-primary)"
-          />
-          <font-awesome-icon
-            v-if="file[1] === 'delete'"
-            :icon="['fas', 'd']"
-            :size="'xs'"
-            style="color: var(--el-color-danger)"
-          />
-          <font-awesome-icon
-            v-if="file[1] === 'create'"
-            :icon="['fas', 'n']"
-            :size="'xs'"
-            style="color: var(--el-color-success)"
-          />
+          <el-tooltip
+            class="box-item"
+            effect="dark"
+            content="放弃所有更改"
+            placement="bottom"
+            ><font-awesome-icon
+              class="undo_all"
+              :icon="['fas', 'rotate-left']"
+              :size="'sm'"
+              @click="undo()"
+          /></el-tooltip>
         </div>
       </div>
+      <div class="diff-box">
+        <div class="diff-item" v-for="file in diff_files" :key="file[0]">
+          <div class="file-info">
+            <span class="file-name">{{ file[0].split("/").pop() }}</span>
+            <el-tooltip
+              class="box-item"
+              effect="dark"
+              :content="file[0]"
+              placement="right"
+              ><span class="file-path">{{
+                file[0].split("/").slice(0, -1).join("/")
+              }}</span></el-tooltip
+            >
+          </div>
+          <div class="others">
+            <el-tooltip
+              class="box-item"
+              effect="dark"
+              content="放弃更改"
+              placement="bottom"
+              ><font-awesome-icon
+                class="undo"
+                :icon="['fas', 'rotate-left']"
+                :size="'xs'"
+                @click="undo(file[0])"
+            /></el-tooltip>
+
+            <font-awesome-icon
+              v-if="file[1] === FileAction.UPDATE"
+              :icon="['fas', 'u']"
+              :size="'xs'"
+              style="color: var(--el-color-primary)"
+            />
+            <font-awesome-icon
+              v-if="file[1] === FileAction.CREATE"
+              :icon="['fas', 'n']"
+              :size="'xs'"
+              style="color: var(--el-color-success)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="no-login-tip" v-else>
+      登录后可使用完整功能
+      <el-button type="primary" size="small" round @click="globalStore.goLogin"
+        >登录</el-button
+      >
     </div>
   </div>
 </template>

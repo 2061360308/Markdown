@@ -214,6 +214,7 @@ class GithubApi {
             };
           } else {
             // 文件新增或更新
+            console.log("文件新增或更新", file.path);
             return {
               path: file.path,
               mode: "100644",

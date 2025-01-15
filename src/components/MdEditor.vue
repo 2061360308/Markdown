@@ -14,16 +14,21 @@ import { EventBusType, EventBus } from "@/eventBus";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 import fs from "@/utils/fs";
-import { splitFrontMatter, stringifyFrontMatter } from "@/utils/frontMatter";
+import yaml from "js-yaml";
+import { format } from "date-fns";
+import { useSettingsStore, useEventStore, useTabsStore } from "@/stores";
 import {
   ContextMenu,
   ContextMenuGroup,
   ContextMenuSeparator,
   ContextMenuItem,
 } from "@imengyu/vue3-context-menu";
-import { useTabsStore } from "@/stores";
+import { watchEffect } from "vue";
+import { onMounted } from "vue";
 
+const settingsStore = useSettingsStore();
 const tabsStore = useTabsStore();
+const eventStore = useEventStore();
 
 const props = defineProps({
   // 编辑器名称/id
@@ -44,7 +49,8 @@ defineExpose({
   vditorInstance,
 });
 
-const MaxEditRegionWidth = 800; // 最大编辑区域宽度
+// 最大编辑区域宽度(sv模式不生效)
+const MaxEditRegionWidth = settingsStore.settings["编辑器配置"].editorMaxWidth;
 
 // frontMatter 属性值类型
 enum fronMatterValueType {
@@ -52,7 +58,7 @@ enum fronMatterValueType {
   array = "array",
   number = "number",
   boolean = "boolean",
-  date = "date",
+  // date = "date",
   dateTime = "dateTime",
 }
 
@@ -72,7 +78,7 @@ let frontMatterBack: Array<string> = [];
 let frontMatterObject = <Record<string, any>>{};
 
 // 文章标题
-const textarea1 = ref("");
+const fileName = ref("");
 
 // 属性类型选择菜单弹出坐标
 const optionsComponent = ref<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -87,7 +93,11 @@ const isFrontMatterFold = ref(false); // 文档属性折叠标识
 
 const isAllSaved = ref(true); // 是否全部保存
 
-const totalWordsNum = ref(0)
+const totalWordsNum = ref(0);
+
+const currentMode = ref(settingsStore.settings["编辑器配置"].editorDefaultMode);
+
+let modeInerval: any;
 
 const createVditorInstance = () => {
   /**
@@ -100,9 +110,14 @@ const createVditorInstance = () => {
     vditorInstance = new Vditor(props.editor, {
       value:
         "# Hello Vditor!\n\n这是编辑器预设内容，如果你看到这段文字代表内容没有被正确显示！",
-      mode: "ir",
+      mode: currentMode.value,
       height: "100%",
+      typewriterMode: settingsStore.settings["编辑器配置"].editorTypewriterMode,
       input: inputHandler,
+      cache: {
+        enable: true,
+        id: props.path,
+      },
       toolbarConfig: {
         pin: true,
       },
@@ -160,8 +175,27 @@ const createVditorInstance = () => {
           ],
         },
       ],
+      preview: {
+        markdown: {
+          autoSpace: settingsStore.settings["编辑器配置"].editorAutoSpace,
+          gfmAutoLink: settingsStore.settings["编辑器配置"].editorGfmAutoLink,
+        },
+      },
+      outline: {
+        enable: true,
+        position: "left",
+      },
+      counter: {
+        enable: true,
+        after: (length: number) => {
+          totalWordsNum.value = length;
+        },
+      },
       after: () => {
         // 确保 vditorInstance 完全初始化后再进行操作
+        fileName.value = props.path.split("/").pop() || ""; // 设置文件名
+
+        // console.log(vditorInstance);
 
         // 读取文件内容
         openFile(props.path);
@@ -188,6 +222,14 @@ watch(
   }
 );
 
+onMounted(() => {
+  modeInerval = setInterval(() => {
+    if (vditorInstance) {
+      currentMode.value = vditorInstance.vditor.currentMode;
+    }
+  }, 1000);
+});
+
 onBeforeUnmount(() => {
   /**
    * 组件销毁时操作
@@ -199,6 +241,8 @@ onBeforeUnmount(() => {
     vditorInstance.destroy(); // 销毁实例
     vditorInstance = null;
   }
+
+  clearInterval(modeInerval);
 });
 
 const openFile = async (path: string) => {
@@ -207,13 +251,13 @@ const openFile = async (path: string) => {
    * 会将 frontMatter 的内容分离出来，并设置到 frontMatter 中
    * 由 createVditorInstance 创建完Vditor实例后调用
    *  */
-  console.log("openFile", path);
+  // console.log("openFile", path);
   fs.get(path).then((content) => {
-    console.log("openFile content", content);
+    // console.log("openFile content", content);
     // 分离 frontMatter 和 content
     let result: { frontMatter: Record<string, any>; content: string } =
       splitFrontMatter(content);
-    frontMatterObject = result.frontMatter;
+    frontMatterObject = result.frontMatter ? result.frontMatter : {};
     for (const key in frontMatterObject) {
       let value = frontMatterObject[key];
       let type = typeof value;
@@ -230,7 +274,7 @@ const openFile = async (path: string) => {
         if (Array.isArray(value)) {
           item_type = fronMatterValueType.array;
         } else if (value instanceof Date) {
-          item_type = fronMatterValueType.date;
+          item_type = fronMatterValueType.dateTime;
         }
       } else {
         continue; // 其他类型不处理, 暂时不支持
@@ -265,7 +309,7 @@ const getContent = () => {
 const saveFile = () => {
   const file_path = props.path;
   const file_content = getContent();
-  console.log("saveFile file_content", file_content);
+  // console.log("saveFile file_content", file_content);
   let eventBus: EventBus = new EventBus(EventBusType.FileSaved);
   fs.write(file_path, file_content).then(() => {
     eventBus.emit();
@@ -284,8 +328,10 @@ const inputHandler = (value: string | any[]) => {
    * 编辑器内容变化时触发
    * 用于更新编辑器状态栏右下角的字数统计
    */
-  totalWordsNum.value = value.length;
+  // totalWordsNum.value = value.length;
   isAllSaved.value = false;
+  // console.log("inputHandler", value);
+  eventStore.fileChanged = Math.random().toString(36);
 };
 
 const showTypeSelectMenu = (event: MouseEvent, index: number) => {
@@ -321,8 +367,9 @@ const changeAttributeType = (type: fronMatterValueType) => {
           frontMatter.value[currentFrontMatterIndex].value = 0;
         } else if (type === fronMatterValueType.boolean) {
           frontMatter.value[currentFrontMatterIndex].value = false;
-        } else if (type === fronMatterValueType.date) {
-          frontMatter.value[currentFrontMatterIndex].value = new Date();
+          // } else if (type === fronMatterValueType.date) {
+          //   frontMatter.value[currentFrontMatterIndex].value = new Date();
+          // }
         } else if (type === fronMatterValueType.dateTime) {
           frontMatter.value[currentFrontMatterIndex].value = new Date();
         } else {
@@ -336,6 +383,7 @@ const changeAttributeType = (type: fronMatterValueType) => {
         // 修改属性类型后，更新 frontMatterObject
         frontMatterObject[frontMatter.value[currentFrontMatterIndex].name] =
           frontMatter.value[currentFrontMatterIndex].value;
+        isAllSaved.value = false;
         ElMessage({
           type: "success",
           message: "属性修改成功",
@@ -355,8 +403,8 @@ const changeAttributeType = (type: fronMatterValueType) => {
       frontMatter.value[currentFrontMatterIndex].value = 0;
     } else if (type === fronMatterValueType.boolean) {
       frontMatter.value[currentFrontMatterIndex].value = false;
-    } else if (type === fronMatterValueType.date) {
-      frontMatter.value[currentFrontMatterIndex].value = new Date();
+      // } else if (type === fronMatterValueType.date) {
+      //   frontMatter.value[currentFrontMatterIndex].value = new Date();
     } else if (type === fronMatterValueType.dateTime) {
       frontMatter.value[currentFrontMatterIndex].value = new Date();
     } else {
@@ -379,7 +427,11 @@ const addPostAttribute = () => {
   /**
    * 添加文档属性
    */
-  if (!frontMatter.value[frontMatter.value.length - 1].name) {
+  console.log(frontMatter.value);
+  if (
+    frontMatter.value.length !== 0 &&
+    !frontMatter.value[frontMatter.value.length - 1].name
+  ) {
     return;
   }
 
@@ -388,6 +440,8 @@ const addPostAttribute = () => {
     type: fronMatterValueType.string,
     value: "",
   });
+
+  isAllSaved.value = false;
 };
 
 const attributeNameInputComplate = (index: number) => {
@@ -442,6 +496,67 @@ const attributeValueInputComplate = (index: number) => {
     frontMatter.value[index].value;
 };
 
+const splitFrontMatter = (content: string) => {
+  const yalmPattern = /^---[\s\S]*?---/;
+  const yamlMatch = content.match(yalmPattern);
+  const yamlContent = yamlMatch ? yamlMatch[0] : "";
+  const cleanedContent = content.replace(yamlContent, "");
+
+  let frontMatter = {};
+
+  if (yamlContent) {
+    frontMatter = parseFrontMatter(yamlContent);
+  }
+
+  return {
+    frontMatter,
+    content: cleanedContent,
+  };
+};
+
+const parseFrontMatter = (content: string) => {
+  let parsedYaml = <Record<string, any>>{};
+  if (content) {
+    try {
+      parsedYaml = yaml.load(content.replace(/^---|---$/g, "")) as Record<
+        string,
+        any
+      >;
+    } catch (e) {
+      console.error("Error parsing YAML:", e);
+    }
+  }
+
+  return parsedYaml;
+};
+
+const stringifyFrontMatter = (frontMatter: Record<string, any>) => {
+  let timeData: Record<string, string> = {};
+
+  for (const key in frontMatter) {
+    console.log("key", key);
+    let value = frontMatter[key];
+    if (value instanceof Date) {
+      let id = Math.random().toString(36);
+      timeData[id] = format(
+        value,
+        settingsStore.settings["编辑器配置"].dateTimeFormat
+      );
+      frontMatter[key] = `${id}`;
+    }
+  }
+
+  let frontMatterString = yaml.dump(frontMatter);
+
+  console.log("timeData", timeData);
+
+  for (const key in timeData) {
+    frontMatterString = frontMatterString.replace(`${key}`, timeData[key]);
+  }
+
+  return `---\n${frontMatterString}---\n`;
+};
+
 // const attributeBlur = (index: number, changeName: boolean = false) => {
 //   /**
 //    * 属性输入框失去焦点时触发
@@ -472,11 +587,15 @@ const attributeValueInputComplate = (index: number) => {
   <div class="md-editor-box">
     <div
       class="editor-region"
-      :style="{ maxWidth: MaxEditRegionWidth.toString() + 'px' }"
+      :style="
+        currentMode === 'sv'
+          ? {}
+          : { maxWidth: MaxEditRegionWidth.toString() + 'px' }
+      "
     >
       <div class="front-matter">
         <el-input
-          v-model="textarea1"
+          v-model="fileName"
           autosize
           type="textarea"
           placeholder="未命名"
@@ -532,12 +651,12 @@ const attributeValueInputComplate = (index: number) => {
                     size="xl"
                     v-else-if="item.type === fronMatterValueType.boolean"
                   />
-                  <font-awesome-icon
+                  <!-- <font-awesome-icon
                     class="type-icon"
                     :icon="['fas', 'calendar-days']"
                     size="xl"
                     v-else-if="item.type === fronMatterValueType.date"
-                  />
+                  /> -->
                   <font-awesome-icon
                     class="type-icon"
                     :icon="['fas', 'clock']"
@@ -580,7 +699,7 @@ const attributeValueInputComplate = (index: number) => {
               @blur="attributeValueInputComplate(index)"
               v-if="item.type === fronMatterValueType.boolean"
             />
-            <el-date-picker
+            <!-- <el-date-picker
               v-model="item.value"
               type="date"
               placeholder="选取日期"
@@ -588,7 +707,7 @@ const attributeValueInputComplate = (index: number) => {
               class="el-front-matter-custom"
               @blur="attributeValueInputComplate(index)"
               v-if="item.type === fronMatterValueType.date"
-            />
+            /> -->
             <el-date-picker
               v-model="item.value"
               type="datetime"
@@ -656,7 +775,7 @@ const attributeValueInputComplate = (index: number) => {
                 <font-awesome-icon :icon="['fas', 'square-check']" />
               </template>
             </context-menu-item>
-            <context-menu-item
+            <!-- <context-menu-item
               label="日期"
               :clickClose="true"
               data-filetype="file"
@@ -665,7 +784,7 @@ const attributeValueInputComplate = (index: number) => {
               <template #icon>
                 <font-awesome-icon :icon="['fas', 'calendar-days']" />
               </template>
-            </context-menu-item>
+            </context-menu-item> -->
             <context-menu-item
               label="日期和时间"
               :clickClose="true"
@@ -817,7 +936,7 @@ const attributeValueInputComplate = (index: number) => {
 
 .md-editor-box {
   width: 100%;
-  height: calc(100vh - 20px);
+  height: calc(100vh - 40px);
   /* width: 100%; */
   overflow: auto;
   background-color: #fafbfc;

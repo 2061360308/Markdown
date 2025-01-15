@@ -33,6 +33,7 @@ declare module 'vue' {
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    ElTree: typeof import('element-plus/es')['ElTree']
     FileTree: typeof import('./src/components/FileTree.vue')['default']
     FrontMatterBlock: typeof import('./src/components/FrontMatterBlock.vue')['default']
     LoginManager: typeof import('./src/components/LoginManager.vue')['default']
