@@ -123,6 +123,9 @@ const loginByGithub = async () => {
   let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${encodeURIComponent(
     currentUrl
   )}`;
+  // let url = `http://api.inkstone.work/githubOauth?client_id=${client_id}&state=${encodeURIComponent(
+  //   currentUrl
+  // )}`;
   window.location.replace(url);
   loading.value = true;
 };

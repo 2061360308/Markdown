@@ -464,7 +464,7 @@ const createFile = () => {
     console.log("fileName", fileName);
     const formattedDate = format(
       new Date(),
-      settingsStore.settings["编辑器配置"].defaultFrontMatter
+      settingsStore.settings["编辑器配置"].dateTimeFormat
     );
     content = `---\ntitle: ${fileName}\ndata: ${formattedDate}\ndraft: false\n---`;
   }
