@@ -54,6 +54,8 @@ class GithubApi {
         repo: this.repo as string,
       });
 
+      console.log("Repo info:", repo);
+
       // 检查仓库是否存在以及是否有权限操作
       hasPushAccess = repo.permissions?.push ?? false;
     } catch (error) {
@@ -61,7 +63,48 @@ class GithubApi {
       hasPushAccess = false;
     }
 
-    if (tokenValid && repoValid && hasPushAccess) {
+    // 检查仓库中是否已经安装了 GitHub App
+
+    let app_id = 1102849; // GitHub App ID
+    let installed_app = false;
+
+    try {
+      // 获取用户安装的所有 GitHub Apps
+      const {
+        data: { installations },
+      } = await this.octokit.rest.apps.listInstallationsForAuthenticatedUser();
+      // 遍历所有安装
+      for (let installation of installations) {
+        // 获取安装的仓库列表
+        if (installation.app_id == app_id) {
+          if (installation.repository_selection === "selected") {
+            // 选择安装还需要判断是否在选择的仓库中
+            const {
+              data: { repositories },
+            } =
+              await this.octokit.rest.apps.listInstallationReposForAuthenticatedUser(
+                {
+                  installation_id: installation.id,
+                }
+              );
+
+            for (let repository of repositories) {
+              if (repository.name === repo) {
+                installed_app = true;
+                break;
+              }
+            }
+          } else {
+            installed_app = true;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("检查安装状态时出错:", error);
+      installed_app = false;
+    }
+
+    if (tokenValid && repoValid && hasPushAccess && installed_app) {
       this.ready = true;
     }
 
@@ -69,6 +112,7 @@ class GithubApi {
       tokenValid: tokenValid,
       repoValid: repoValid,
       hasPushAccess: hasPushAccess,
+      installedApp: installed_app,
     };
   };
 

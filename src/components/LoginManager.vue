@@ -23,12 +23,14 @@ const repoList = ref<{ label: string; value: string }[]>([]);
 let access_token;
 
 onMounted(async () => {
+  // 获取本地存储的 remember 和 loginMethod
   const rememberValue = localStorage.getItem("remember");
   remember.value = rememberValue === "true" ? true : false;
 
   const loginMethodValue = localStorage.getItem("loginMethod");
   loginMethod.value = loginMethodValue || "github";
 
+  // 获取查询参数, access_token 和 repo
   repo.value =
     (route.query.repo as string | null) || localStorage.getItem("repo") || "";
   access_token =
@@ -36,26 +38,28 @@ onMounted(async () => {
     decryptToken(localStorage.getItem("access_token") || "") ||
     "";
 
+  // 记录repo
   if (repo.value) {
     localStorage.setItem("repo", repo.value);
   }
 
+  // 如果存在 access_token,进行验证
   if (access_token) {
-    // 清除查询参数
-    loading.value = true;
+    loading.value = true;  // 清除查询参数
     router.replace({ query: {} });
-    let { tokenValid, repoValid, hasPushAccess } = await api.init(
+    let { tokenValid, repoValid, hasPushAccess, installedApp } = await api.init(
       repo.value,
-      access_token
+      access_token as string
     );
 
     console.log("tokenValid", tokenValid);
     console.log("repoValid", repoValid);
     console.log("hasPushAccess", hasPushAccess);
+    console.log("installedApp", installedApp);
 
     if (tokenValid) {
       // Todo 暂时忽略remember选项
-      localStorage.setItem("access_token", encryptToken(access_token));
+      localStorage.setItem("access_token", encryptToken(access_token as string));
     }
 
     if (!tokenValid) {
@@ -74,6 +78,11 @@ onMounted(async () => {
     } else if (!hasPushAccess) {
       ElMessage.error("无推送权限，请重新登录");
       loading.value = false;
+      return;
+    } else if (!installedApp) {
+      ElMessage.error("请先安装应用");
+      // 重定向到安装应用页面
+      window.location.href = "https://github.com/apps/InkStoneEditor/installations/new";
       return;
     }
 
@@ -104,7 +113,7 @@ const loginByToken = () => {
 const loginByGithub = async () => {
   localStorage.setItem("loginMethod", loginMethod.value);
   // 获取当前查询参数
-  let params = new URLSearchParams(route.query);
+  let params = new URLSearchParams(Object.entries(route.query).map(([key, value]) => [key, value as string]));
   // 检查是否已经存在 time 参数
   if (params.has("time")) {
     // 更新 time 参数的值
@@ -123,9 +132,6 @@ const loginByGithub = async () => {
   let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${encodeURIComponent(
     currentUrl
   )}`;
-  // let url = `http://api.inkstone.work/githubOauth?client_id=${client_id}&state=${encodeURIComponent(
-  //   currentUrl
-  // )}`;
   window.location.replace(url);
   loading.value = true;
 };
