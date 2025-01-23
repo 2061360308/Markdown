@@ -69,7 +69,7 @@ onMounted(async () => {
     } else if (!repoValid) {
       ElMessage.error("仓库不存在或无权限");
       chooseRepo.value = true;
-      let repos = await api.getRepoNames(access_token);
+      let repos = await api.getRepoNames(access_token as string);
       repos.forEach((repo) => {
         repoList.value.push({ label: repo.name, value: repo.name });
       });
