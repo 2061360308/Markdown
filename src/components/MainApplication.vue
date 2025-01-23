@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Splitpanes, Pane } from "splitpanes";
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
 import FileTree from "./FileTree.vue";
 import WorkSpace from "./WorkSpace.vue";
@@ -11,13 +12,17 @@ import api from "@/utils/api";
 import { useTabsStore } from "@/stores";
 
 const tabsStore = useTabsStore();
+const router = useRouter();
 
 const leftPaneSize = ref(20);
 const activeMenu = ref("files");
 
 onMounted(async () => {
   if (!api.ready) {
-    // router.push({ name: "login" });
+    // 判断是否是跳过登录的情况
+    if(!localStorage.getItem("jumpLogin")) {
+      router.push({ name: "login" });
+    }
     // 加载远程配置
   }
 });

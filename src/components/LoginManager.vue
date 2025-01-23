@@ -142,6 +142,7 @@ const setRepoLogin = () => {
 };
 
 const jumpLogin = () => {
+  localStorage.setItem("jumpLogin", "true");  // 添加跳过登录标记
   router.replace({ name: "main" });
 };
 </script>
