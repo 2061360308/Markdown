@@ -6,6 +6,7 @@ import { ref, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/utils/api";
 import { encryptToken, decryptToken } from "@/utils/encryptToken";
+import { githubAppClientId } from "@/config";
 
 const route = useRoute();
 const router = useRouter();
@@ -128,10 +129,10 @@ const loginByGithub = async () => {
 
   const currentUrl = window.location.href;
   console.log("loginByGithub");
-  let client_id = "Iv23liKlkmkQ3Tc1M679";
-  let url = `https://github.com/login/oauth/authorize?client_id=${client_id}&state=${encodeURIComponent(
+  let url = `https://github.com/login/oauth/authorize?client_id=${githubAppClientId}&state=${encodeURIComponent(
     currentUrl
   )}`;
+
   window.location.replace(url);
   loading.value = true;
 };

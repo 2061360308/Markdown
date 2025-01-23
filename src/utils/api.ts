@@ -1,5 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
+import { githubAppId } from "@/config";
 
 const DEBUG = true;
 
@@ -65,7 +66,6 @@ class GithubApi {
 
     // 检查仓库中是否已经安装了 GitHub App
 
-    let app_id = 1102849; // GitHub App ID
     let installed_app = false;
 
     try {
@@ -76,7 +76,7 @@ class GithubApi {
       // 遍历所有安装
       for (let installation of installations) {
         // 获取安装的仓库列表
-        if (installation.app_id == app_id) {
+        if (installation.app_id == githubAppId) {
           if (installation.repository_selection === "selected") {
             // 选择安装还需要判断是否在选择的仓库中
             const {
