@@ -8,4 +8,9 @@
 - 无需配置安装，在线即可使用
 
 [GitHub](https://github.com/2061360308/inkstone/)
-[Get Started](#docsify)
+[Get Started](getting-started)
+
+
+<!-- background image -->
+
+![](images/bg.svg)
