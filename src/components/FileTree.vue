@@ -466,7 +466,7 @@ const createFile = () => {
       new Date(),
       settingsStore.settings["编辑器配置"].dateTimeFormat
     );
-    content = `---\ntitle: ${fileName}\ndata: ${formattedDate}\ndraft: false\n---`;
+    content = `---\ntitle: ${fileName}\ndata: ${formattedDate}\nlastmod:  ${formattedDate}\ndraft: false\n---`;
   }
 
   fs.write(path, content).then((res) => {

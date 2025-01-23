@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElTabs, ElTabPane, TabPaneName } from "element-plus";
-import MdEditor from "./MdEditor.vue";
+import MdEditor from "./editor/MdEditor.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import { useTabsStore } from "@/stores";
 
