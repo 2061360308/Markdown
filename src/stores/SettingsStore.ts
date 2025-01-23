@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, computed, Ref, watch } from "vue";
+import { ref, computed, Ref, watch, toRef } from "vue";
 
 export const useSettingsStore = defineStore("settings", () => {
   enum EditorMode {
@@ -22,7 +22,7 @@ export const useSettingsStore = defineStore("settings", () => {
     selectInput = "selectInput",
     colorInput = "colorInput",
     booleanInput = "booleanInput",
-}
+  }
 
   const themeName = ref<string>("default"); // 主题名称
   const repoName = ref<string>(""); // 仓库名称
@@ -38,8 +38,8 @@ export const useSettingsStore = defineStore("settings", () => {
 
   const settingsInputTypes: Record<string, InputType> = {
     themeName: InputType.selectInput,
-    repoName: InputType.lineInput,
-    repoBranch: InputType.lineInput,
+    repoName: InputType.selectInput,
+    repoBranch: InputType.selectInput,
     repoPath: InputType.lineInput,
     defaultFrontMatter: InputType.textInput,
     dateTimeFormat: InputType.lineInput,
@@ -48,7 +48,7 @@ export const useSettingsStore = defineStore("settings", () => {
     editorTypewriterMode: InputType.booleanInput,
     editorAutoSpace: InputType.booleanInput,
     editorGfmAutoLink: InputType.booleanInput,
-  }
+  };
 
   const settingsInputLabels: Record<string, string> = {
     themeName: "主题",
@@ -62,22 +62,27 @@ export const useSettingsStore = defineStore("settings", () => {
     editorTypewriterMode: "打字机模式",
     editorAutoSpace: "自动空格",
     editorGfmAutoLink: "自动链接",
-  }
+  };
 
   const settingsInputDescriptions: Record<string, string> = {
     themeName: "主题名称：用于设置应用程序的主题样式。",
     repoName: "仓库名称：指定远程仓库的名称。",
     repoBranch: "仓库分支：指定要使用的远程仓库分支。",
     repoPath: "仓库路径：指定本地仓库的路径。",
-    defaultFrontMatter: "默认 front matter：用于新建文件时的默认 front matter 配置。",
-    dateTimeFormat: "日期时间格式：设置日期时间的格式，用于 front matter 中的日期时间字段。",
-    editorDefaultMode: "默认编辑器模式：设置编辑器的默认模式，例如 Markdown 或富文本。",
+    defaultFrontMatter:
+      "默认 front matter：用于新建文件时的默认 front matter 配置。",
+    dateTimeFormat:
+      "日期时间格式：设置日期时间的格式，用于 front matter 中的日期时间字段。",
+    editorDefaultMode:
+      "默认编辑器模式：设置编辑器的默认模式，例如 Markdown 或富文本。",
     editorMaxWidth: "编辑器最大宽度：设置编辑器的最大显示宽度。",
-    editorTypewriterMode: "打字机模式：启用或禁用打字机模式，使当前行始终保持在视图中间。",
+    editorTypewriterMode:
+      "打字机模式：启用或禁用打字机模式，使当前行始终保持在视图中间。",
     editorAutoSpace: "自动空格：启用或禁用自动空格功能。",
     editorGfmAutoLink: "自动链接：启用或禁用 GitHub 风格的自动链接功能。",
     editorLineNumbers: "显示行号：启用或禁用编辑器中的行号显示。",
-    editorHighlightActiveLine: "高亮当前行：启用或禁用高亮显示编辑器中的当前行。",
+    editorHighlightActiveLine:
+      "高亮当前行：启用或禁用高亮显示编辑器中的当前行。",
     editorTabSize: "Tab 大小：设置编辑器中 Tab 字符的宽度。",
     editorFontFamily: "字体：设置编辑器中使用的字体。",
     editorFontSize: "字体大小：设置编辑器中使用的字体大小。",
@@ -93,9 +98,26 @@ export const useSettingsStore = defineStore("settings", () => {
     editorLinting: "代码检查：启用或禁用编辑器中的代码检查功能。",
   };
 
-  const selectInputOptions: Record<string, string[]> = {
-    themeName: ["default", "light", "dark"],
-    editorDefaultMode: [EditorMode.WYSIWYG, EditorMode.IR, EditorMode.SV],
+  const selectInputOptions: Record<string, Ref<string[]>> = {
+    themeName: ref(["default", "light", "dark"]),
+    repoName: ref([]),
+    repoBranch: ref([]),
+    editorDefaultMode: ref([EditorMode.WYSIWYG, EditorMode.IR, EditorMode.SV]),
+  };
+
+  // 设置项是否使用
+  const settingsUsage: Record<string, boolean> = {
+    themeName: true,
+    repoName: true,
+    repoBranch: true,
+    repoPath: true,
+    defaultFrontMatter: true,
+    dateTimeFormat: true,
+    editorDefaultMode: true,
+    editorMaxWidth: true,
+    editorTypewriterMode: true,
+    editorAutoSpace: true,
+    editorGfmAutoLink: true,
   }
 
   const settings: Record<string, Record<string, any>> = {
@@ -127,8 +149,20 @@ export const useSettingsStore = defineStore("settings", () => {
       });
     }
 
-    
+    localStorage.setItem("settings", JSON.stringify(data));
   };
+
+  const loadSettings = (data: Record<string, any>) => {
+    // 加载设置
+    for (let groupname in settings) {
+      let group = settings[groupname];
+      Object.keys(group).forEach((key: string) => {
+        if (data[key] !== undefined) {
+          group[key].value = data[key];
+        }
+      });
+    }
+  }
 
   // 监测设置项变化
   for (let groupname in settings) {
@@ -138,6 +172,14 @@ export const useSettingsStore = defineStore("settings", () => {
         saveSettings();
       });
     });
+  }
+
+  // 初始化设置
+  let data = localStorage.getItem("settings");
+  if (data) {
+    loadSettings(JSON.parse(data));
+  } else {
+    saveSettings();
   }
 
   return {

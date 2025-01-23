@@ -4,11 +4,138 @@ import { githubAppId } from "@/config";
 
 const DEBUG = true;
 
+export const checkToken = async (token: string): Promise<string | boolean> => {
+  const octokit = new Octokit({
+    auth: token,
+  });
+
+  try {
+    // 尝试获取用户信息
+    const { data: user } = await octokit.rest.users.getAuthenticated();
+    // this.owner = user.login;
+    // console.log("User info:", this.owner, this.repo);
+    return user.login;
+  } catch (error) {
+    // tokenValid = false;
+    return false;
+  }
+};
+
+export const checkRepo = async (
+  owner: string,
+  repo: string,
+  token: string
+): Promise<Record<string, boolean>> => {
+  try {
+    // 尝试获取仓库信息
+    // 获取仓库信息
+    const octokit = new Octokit({
+      auth: token,
+    });
+
+    const { data: repoObj } = await octokit.rest.repos.get({
+      owner,
+      repo,
+    });
+
+    console.log("Repo info:", repo);
+
+    // 检查仓库是否存在以及是否有权限操作
+    return {
+      repoValid: true,
+      hasPushAccess: repoObj.permissions?.push ?? false,
+    };
+  } catch (error) {
+    return {
+      repoValid: false,
+      hasPushAccess: false,
+    };
+  }
+};
+
+export const checkBranch = async (
+  owner: string,
+  token: string,
+  repo: string,
+  branch: string
+) => {
+  // 检查分支是否存在
+  const octokit = new Octokit({
+    auth: token,
+  });
+
+  try {
+    // 获取仓库的所有分支
+    const response = await octokit.rest.repos.listBranches({
+      owner: owner,
+      repo: repo,
+    });
+
+    const branches = response.data;
+
+    return branches.some((b) => b.name === branch);
+  } catch (error) {
+    console.error("Error fetching branches:", error);
+    return false;
+  }
+};
+
+export const checkInstalledApp = async (
+  repo: string,
+  token: string
+): Promise<boolean> => {
+  // 检查仓库中是否已经安装了 GitHub App
+
+  const octokit = new Octokit({
+    auth: token,
+  });
+
+  let installed_app = false;
+
+  try {
+    // 获取用户安装的所有 GitHub Apps
+    const {
+      data: { installations },
+    } = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
+    // 遍历所有安装
+    for (let installation of installations) {
+      // 获取安装的仓库列表
+      if (installation.app_id == githubAppId) {
+        if (installation.repository_selection === "selected") {
+          // 选择安装还需要判断是否在选择的仓库中
+          const {
+            data: { repositories },
+          } = await octokit.rest.apps.listInstallationReposForAuthenticatedUser(
+            {
+              installation_id: installation.id,
+            }
+          );
+
+          for (let repository of repositories) {
+            if (repository.name === repo) {
+              installed_app = true;
+              break;
+            }
+          }
+        } else {
+          installed_app = true;
+        }
+      }
+    }
+    return installed_app;
+  } catch (error) {
+    console.error("检查安装状态时出错:", error);
+    installed_app = false;
+    return installed_app;
+  }
+};
+
 class GithubApi {
   ready: boolean = false;
   octokit: Octokit | null = null;
   owner: string | null = null;
   repo: string | null = null;
+  branch: string | null = null;
   static instance: GithubApi;
 
   constructor() {
@@ -19,9 +146,10 @@ class GithubApi {
     GithubApi.instance = this;
   }
 
-  init = async (repo: string, token: string) => {
+  init = async (repo: string, token: string, branch: string) => {
     // 初始化 Octokit
     this.repo = repo;
+    this.branch = branch;
 
     if (!this.octokit) {
       this.octokit = new Octokit({
@@ -29,101 +157,64 @@ class GithubApi {
       });
     }
 
-    let tokenValid = true;
+    let result = {
+      tokenValid: false,
+      repoValid: false,
+      hasPushAccess: false,
+      branchValid: false,
+      installedApp: false,
+    };
 
-    try {
-      // 尝试获取用户信息
-      const { data: user } = await this.octokit.rest.users.getAuthenticated();
-      this.owner = user.login;
-      console.log("User info:", this.owner, this.repo);
-    } catch (error) {
-      tokenValid = false;
+    let user = await checkToken(token);
+
+    if (user) {
+      this.owner = user as string;
+      result.tokenValid = true;
+    } else {
+      return result;
     }
 
-    let repoValid = true;
-    let hasPushAccess = true;
+    const { repoValid, hasPushAccess } = await checkRepo(
+      this.owner as string,
+      repo,
+      token
+    );
+    result.repoValid = repoValid;
+    result.hasPushAccess = hasPushAccess;
+    if (!result.repoValid || !result.hasPushAccess) {
+      return result;
+    }
 
-    try {
-      // 尝试获取仓库信息
-      // 获取仓库信息
-      if (!this.repo) {
-        throw new Error("this.repo is not defined");
-      }
-
-      const { data: repo } = await this.octokit.rest.repos.get({
-        owner: this.owner as string,
-        repo: this.repo as string,
-      });
-
-      console.log("Repo info:", repo);
-
-      // 检查仓库是否存在以及是否有权限操作
-      hasPushAccess = repo.permissions?.push ?? false;
-    } catch (error) {
-      repoValid = false;
-      hasPushAccess = false;
+    // 检查分支是否存在
+    result.branchValid = await checkBranch(
+      this.owner as string,
+      token,
+      repo,
+      branch
+    );
+    if (!result.branchValid) {
+      return result;
     }
 
     // 检查仓库中是否已经安装了 GitHub App
 
-    let installed_app = false;
-
-    try {
-      // 获取用户安装的所有 GitHub Apps
-      const {
-        data: { installations },
-      } = await this.octokit.rest.apps.listInstallationsForAuthenticatedUser();
-      // 遍历所有安装
-      for (let installation of installations) {
-        // 获取安装的仓库列表
-        if (installation.app_id == githubAppId) {
-          if (installation.repository_selection === "selected") {
-            // 选择安装还需要判断是否在选择的仓库中
-            const {
-              data: { repositories },
-            } =
-              await this.octokit.rest.apps.listInstallationReposForAuthenticatedUser(
-                {
-                  installation_id: installation.id,
-                }
-              );
-
-            for (let repository of repositories) {
-              if (repository.name === repo) {
-                installed_app = true;
-                break;
-              }
-            }
-          } else {
-            installed_app = true;
-          }
-        }
-      }
-    } catch (error) {
-      console.error("检查安装状态时出错:", error);
-      installed_app = false;
+    result.installedApp = await checkInstalledApp(repo, token);
+    if (!result.installedApp) {
+      return result;
     }
 
-    if (tokenValid && repoValid && hasPushAccess && installed_app) {
-      this.ready = true;
-    }
-
-    return {
-      tokenValid: tokenValid,
-      repoValid: repoValid,
-      hasPushAccess: hasPushAccess,
-      installedApp: installed_app,
-    };
+    this.ready = true;
+    return result;
   };
 
-  getRepoNames = async (token: string) => {
-    const octokit = new Octokit({
-      auth: token,
-    });
+  getRepoNames = async () => {
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
 
     try {
       // 获取当前用户的所有仓库
-      const response = await octokit.rest.repos.listForAuthenticatedUser({
+      const response = await this.octokit.rest.repos.listForAuthenticatedUser({
         visibility: "all", // 获取所有可见性（public 和 private）的仓库
         per_page: 100, // 每页获取的仓库数量
       });
@@ -132,6 +223,26 @@ class GithubApi {
     } catch (error) {
       console.error("Error fetching repositories:", error);
       throw error;
+    }
+  };
+
+  getRepoBranches = async () => {
+    // 获取仓库的所有分支
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
+
+    try {
+      const response = await this.octokit.rest.repos.listBranches({
+        owner: this.owner as string,
+        repo: this.repo as string,
+      });
+
+      const branches = response.data;
+      console.log("Branches:", branches);
+      return branches;
+    } catch (error) {
+      console.error("Error fetching branches:", error);
     }
   };
 
