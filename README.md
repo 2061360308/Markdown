@@ -11,6 +11,8 @@
 </p>
 </div>
 
+<h1>相关文档请见官网: <a href="https://inkstone.work" target="_blank">https://inkstone.work</a></h1>
+
 # 砚台/InkStone
 
 ## 💡 介绍
@@ -31,7 +33,7 @@
 
 ### 体验地址
 
-[Vercel](https://hugo-editor.1think2program.cn)
+[Vercel](https://app.inkstone.work)
 
 <!-- 1. [Github Pages](https://www.1think2program.cn/HugoEditor) -->
 
