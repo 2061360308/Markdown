@@ -8,7 +8,8 @@
 - 无需配置安装，在线即可使用
 
 [GitHub](https://github.com/2061360308/inkstone/)
-[Get Started](getting-started)
+[在线Demo](https://app.inkstone.work/)
+[快速开始](getting-started)
 
 
 <!-- background image -->
