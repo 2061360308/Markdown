@@ -65,29 +65,55 @@ export const useTabsStore = defineStore("tabs", () => {
     activeTabId.value = id;
   };
 
-  const openFile = (path: string) => {
+  const openFile = (path: string, repo: string) => {
+    console.log("openFile", path, repo);
     // 防止重复打开
     for (let tab of tabs.value) {
       if (tab.data.path === path) {
-        setActiveTab(tab.id);
-        return;
+        if (tab.data.repo === repo) {
+          setActiveTab(tab.id);
+          return;
+        }
       }
     }
 
-    let title = ref(path.split("/").pop());
+    let title = ref(path.split("/").pop()||"");
+
+    // 如果有路径文件，标题加上repo
+    for (let tab of tabs.value) {
+      if (tab.data.path === path) {
+        tab.data.title = tab.data.title + " @ " + tab.data.repo;
+        title.value = path + " @ " + repo;
+      }
+    }
 
     // 防止不同目录下同名文件标题相同
     for (let tab of tabs.value) {
       if (tab.data.title === title) {
-        tab.data.title.value = tab.data.path;
-        title.value = path;
+        let original_tab_title = tab.data.title;
+        let original_title = title.value;
+
+        if(original_tab_title.endsWith(" @ " + tab.data.repo)){
+          tab.data.title = tab.data.path + " @ " + tab.data.repo;
+        } else {
+          tab.data.title = tab.data.path;
+        }
+
+        if(original_title.endsWith(" @ " + repo)){
+          title.value = path + " @ " + repo;
+        } else {
+          title.value = path;
+        }
       }
     }
 
     let data = {
       path,
       title,
+      repo,
     };
+
+    console.log("data", data);
 
     // 获取后缀
     const ext = path.split(".").pop()?.toLowerCase();

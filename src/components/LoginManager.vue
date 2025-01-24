@@ -168,6 +168,8 @@ const setRepoLogin = () => {
 
 const jumpLogin = () => {
   localStorage.setItem("jumpLogin", "true"); // 添加跳过登录标记
+  // 更改设置中当前仓库为 inkstone.local 以便后续存储文件
+  settingsStore.settings["基本配置"].repoName = "inkstone.local";
   router.replace({ name: "main" });
 };
 </script>

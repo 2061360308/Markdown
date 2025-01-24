@@ -24,8 +24,6 @@ const settingsStore = useSettingsStore();
 const tabsStore = useTabsStore();
 const eventStore = useEventStore();
 
-const repoName = computed(() => settingsStore.settings["基本配置"].repoName);
-
 // 文章标题
 const fileName = ref("");
 
@@ -42,7 +40,14 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  // 仓库名称
+  repo: {
+    type: String,
+    required: true,
+  },
 });
+
+const repoName = computed(() => props.repo);
 
 let vditorInstance: Vditor | null = null;
 
@@ -226,6 +231,8 @@ const openFile = async (path: string) => {
    * 会将 frontMatter 的内容分离出来，并设置到 frontMatter 中
    * 由 createVditorInstance 创建完Vditor实例后调用
    *  */
+
+  console.log("openFile", path, repoName.value);
 
   fs.get(path, repoName.value).then((content) => {
     console.log("openFile content", content);

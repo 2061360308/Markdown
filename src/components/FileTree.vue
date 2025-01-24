@@ -2,15 +2,9 @@
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { SlVueTreeNext } from "sl-vue-tree-next";
 import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
-import { ref, onMounted, nextTick } from "vue";
-import {
-  ElSelect,
-  ElOption,
-  ElMessage,
-  ElMessageBox,
-} from "element-plus";
+import { ref, onMounted, nextTick, Ref } from "vue";
+import { ElSelect, ElOption, ElMessage, ElMessageBox } from "element-plus";
 
-import { EventBusType, EventBus } from "@/eventBus";
 import {
   ContextMenu,
   ContextMenuGroup,
@@ -30,6 +24,9 @@ const globalStore = useGlobalStore();
 
 const repoName = computed(() => settingsStore.settings["基本配置"].repoName);
 
+const localTreeRepoName: Ref<string> = ref(repoName.value); // 本地文件树要显示的仓库名
+const localTreeRepoNames: Ref<string[]> = ref([]); // 本地文件树的仓库名列表
+
 const loading = ref(false);
 
 let current_clicked_node: Record<string, any> = {};
@@ -41,6 +38,7 @@ const createFileValue = ref({
   post: false, // 是否是文章
   draft: false, // 是否是草稿文章
   fileFolder: "",
+  repoName: "",
 });
 
 const menuVisible = ref(false);
@@ -199,7 +197,6 @@ const transformTree = (tree: Array<treeItemObject>) => {
   return result;
 };
 
-
 // 更新目录树
 const updateTree = async () => {
   loading.value = true;
@@ -227,7 +224,15 @@ const updateTree = async () => {
       loading.value = false;
     });
   } else if (selectTreeType.value === "local") {
-    fs.list(repoName.value).then(async (res) => {
+    localTreeRepoNames.value = await fs.listAllRepoNames();
+    if (!api.ready) {
+      // 离线模式下，如果默认空间inkstone.local不存在，则额外添加
+      if (!localTreeRepoNames.value.includes("inkstone.local")) {
+        localTreeRepoNames.value.push("inkstone.local");
+      }
+    }
+
+    fs.list(localTreeRepoName.value).then(async (res) => {
       let loaclTree = formatLocalTree(res);
       fileTree.value = transformTree(loaclTree);
       loading.value = false;
@@ -264,6 +269,12 @@ const updateTree = async () => {
 };
 
 onMounted(() => {
+  if (!api.ready) {
+    // 如果是离线模式下，直接显示本地文件树
+    selectTreeType.value = "local";
+    treeTypes.value = [{ label: "本地缓存文件树(扁平)", value: "local" }];
+    updateTree();
+  }
   updateTree();
 });
 
@@ -281,7 +292,8 @@ const nodeSelected = (selectedNodes: string | any[]) => {
     if (selectTreeType.value === "remote") {
       console.log("remote只读");
     } else if (selectTreeType.value === "local") {
-      tabsStore.openFile(path);
+      console.log("local", localTreeRepoName.value);
+      tabsStore.openFile(path, localTreeRepoName.value);
     } else {
       if (node.data.position === "remote") {
         loading.value = true;
@@ -290,29 +302,17 @@ const nodeSelected = (selectedNodes: string | any[]) => {
           console.log("getFileContent", res);
           let content = res.decodedContent;
           fs.write(path, content, repoName.value).then((res) => {
-            tabsStore.openFile(path); // 打开文件
+            tabsStore.openFile(path, repoName.value); // 打开文件
             loading.value = false;
             updateTree();
           });
         });
       } else {
         // 本地文件，打开
-        tabsStore.openFile(path);
+        tabsStore.openFile(path, repoName.value);
       }
     }
   }
-};
-
-const openFile = (path: string) => {
-  // 获取后缀名
-  let suffix = path.substring(path.lastIndexOf(".") + 1);
-  let eventBus: EventBus;
-  if (suffix === "md") {
-    eventBus = new EventBus(EventBusType.OpenMdFile);
-  } else {
-    eventBus = new EventBus(EventBusType.OpenMdFile);
-  }
-  eventBus.emit(path);
 };
 
 // 节点拖拽事件处理函数
@@ -331,7 +331,7 @@ const showContextMenu = (
   event: { preventDefault: () => void; clientX: any; clientY: any }
 ) => {
   // 只在混合模式下允许创建，删除，重命名等操作
-  if (selectTreeType.value !== "mixed") {
+  if (selectTreeType.value === "remote") {
     return;
   }
 
@@ -345,7 +345,12 @@ const showContextMenu = (
 };
 
 const titleBarCreateClick = () => {
-  current_clicked_node = {};
+  current_clicked_node = {
+    type: "tree",
+    data: {
+      path: "",
+    }
+  };
   showCreateFileDialog(false, false);
 };
 
@@ -396,7 +401,16 @@ const deleteFile = (e: any) => {
       }
     )
       .then(() => {
-        fs.delete(current_clicked_node.data.path, repoName.value).then((res) => {
+        let _repoName;
+        if (selectTreeType.value === "mixed") {
+          _repoName = repoName.value;
+        } else if (selectTreeType.value === "local") {
+          _repoName = localTreeRepoName.value;
+        } else {
+          throw new Error("不支持的操作");
+        }
+
+        fs.delete(current_clicked_node.data.path, _repoName).then((res) => {
           console.log("deleteFile", res);
           ElMessage({
             type: "success",
@@ -421,9 +435,7 @@ const showCreateFileDialog = (
 ) => {
   let create_folder;
 
-  if (current_clicked_node === null) {
-    create_folder = "";
-  } else if (current_clicked_node.data.type === "tree") {
+  if (current_clicked_node.data.type === "tree") {
     create_folder = current_clicked_node.data.path;
   } else {
     create_folder = current_clicked_node.data.path.substring(
@@ -432,18 +444,22 @@ const showCreateFileDialog = (
     );
   }
 
-  // let target = e.target;
-
-  // 向上遍历 DOM 树，直到找到具有 data-filetype 属性的父元素
-  // while (target && !target.dataset.filetype) {
-  //   target = target.parentElement;
-  // }
+  // 根据当前选择的文件树类型，决定选用的仓库名
+  let _repoName;
+  if (selectTreeType.value === "mixed") {
+    _repoName = repoName.value;
+  } else if (selectTreeType.value === "local") {
+    _repoName = localTreeRepoName.value;
+  } else {
+    throw new Error("不支持的操作");
+  }
 
   createFileValue.value = {
     fileName: "",
     fileFolder: create_folder ? create_folder : "",
     draft: draft,
     post: post,
+    repoName: _repoName,
   };
 
   menuVisible.value = false;
@@ -497,12 +513,10 @@ const createFile = () => {
     )}\n---`;
   }
 
-  fs.write(path, content, repoName.value).then((res) => {
-    console.log("createFile", res);
+  fs.write(path, content, createFileValue.value.repoName).then((res) => {
     updateTree();
+    tabsStore.openFile(path, createFileValue.value.repoName);
   });
-
-  openFile(path);
 
   dialogCreateFileVisible.value = false;
 };
@@ -525,22 +539,43 @@ const createFile = () => {
         </el-button>
       </div>
     </div>
-    <el-select
-      class="select-tree-type"
-      v-model="selectTreeType"
-      collapse-tags
-      placeholder="Select"
-      popper-class="custom-header"
-      :max-collapse-tags="2"
-      @change="updateTree"
-    >
-      <el-option
-        v-for="item in treeTypes"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value"
-      />
-    </el-select>
+    <div class="selects">
+      <el-select
+        class="select-tree-type"
+        v-model="selectTreeType"
+        collapse-tags
+        placeholder="Select"
+        popper-class="custom-header"
+        :max-collapse-tags="2"
+        @change="updateTree"
+      >
+        <el-option
+          v-for="item in treeTypes"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+
+      <el-select
+        class="select-local-tree-repo"
+        v-model="localTreeRepoName"
+        collapse-tags
+        placeholder="Select"
+        popper-class="custom-header"
+        :max-collapse-tags="2"
+        @change="updateTree"
+        v-if="selectTreeType === 'local'"
+      >
+        <el-option
+          v-for="item in localTreeRepoNames"
+          :key="item"
+          :label="item"
+          :value="item"
+        />
+      </el-select>
+    </div>
+
     <div class="no-login-tip" v-if="!api.ready">
       登录后可使用完整功能
       <el-button type="primary" size="small" round @click="globalStore.goLogin"
@@ -723,8 +758,18 @@ const createFile = () => {
   align-items: center;
 }
 
-.select-tree-type {
+/* .select-tree-type {
   width: 100%;
+} */
+
+.selects {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selects .select-local-tree-repo {
+  width: 150px;
 }
 
 .no-login-tip {

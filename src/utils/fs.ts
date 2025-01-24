@@ -69,7 +69,7 @@ class Fs {
       return false;
     }
 
-    await this.db.table("files").delete([ path, repo ]);
+    await this.db.table("files").delete([path, repo]);
     return true;
   };
 
@@ -80,6 +80,15 @@ class Fs {
       return [];
     }
     return files.map((file) => file.path);
+  };
+
+  listAllRepoNames = async (): Promise<string[]> => {
+    // 获取所有仓库名
+    let files = await this.db.table("files").toArray();
+    let repoNames = files.map((file) => file.repo);
+    // 去重
+    let result = Array.from(new Set(repoNames));
+    return result;
   };
 }
 

@@ -5,6 +5,14 @@ import SettingsPanel from "./SettingsPanel.vue";
 import { useTabsStore } from "@/stores";
 
 const tabsStore = useTabsStore();
+
+const truncateTitle = (title: any) => {
+  const maxLength = 10; // 设置最大字符长度
+  if (title.length > maxLength) {
+    return title.substring(0, maxLength) + "...";
+  }
+  return title;
+};
 </script>
 
 <template>
@@ -29,11 +37,18 @@ const tabsStore = useTabsStore();
             :icon="['fas', item.icon]"
             style="padding-right: 2px"
           />
-          {{ item.data.title }}
+          <el-tooltip
+            class="box-item"
+            effect="dark"
+            :content="item.data.title"
+            placement="bottom-start"
+            >{{ truncateTitle(item.data.title) }}</el-tooltip
+          >
         </template>
         <MdEditor
           :editor="item.id"
           :path="item.data.path"
+          :repo="item.data.repo"
           v-if="item.type === tabsStore.TabType.MdFile"
         />
         <SettingsPanel
