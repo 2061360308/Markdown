@@ -35,8 +35,6 @@ export const useTabsStore = defineStore("tabs", () => {
       id = generateRandomId(6);
     }
 
-    console.log("addTab", id, type, icon, data, tabs.value);
-
     if (tabs.value.find((tab) => tab.id === id)) {
       setActiveTab(id);
       return;

@@ -9,6 +9,7 @@ import {
   onBeforeUnmount,
   nextTick,
   Ref,
+  computed,
 } from "vue";
 
 import { EventBusType, EventBus } from "@/eventBus";
@@ -19,14 +20,16 @@ import fs from "@/utils/fs";
 import { useSettingsStore, useEventStore, useTabsStore } from "@/stores";
 import { onMounted } from "vue";
 
+const settingsStore = useSettingsStore();
+const tabsStore = useTabsStore();
+const eventStore = useEventStore();
+
+const repoName = computed(() => settingsStore.settings["基本配置"].repoName);
+
 // 文章标题
 const fileName = ref("");
 
 const frontMatterString: Ref<string> = ref(""); // frontMatter 解析出来的对象
-
-const settingsStore = useSettingsStore();
-const tabsStore = useTabsStore();
-const eventStore = useEventStore();
 
 const props = defineProps({
   // 编辑器名称/id
@@ -224,7 +227,8 @@ const openFile = async (path: string) => {
    * 由 createVditorInstance 创建完Vditor实例后调用
    *  */
 
-  fs.get(path).then((content) => {
+  fs.get(path, repoName.value).then((content) => {
+    console.log("openFile content", content);
     // 分离 frontMatter 和 content
     let result = splitFrontMatter(content);
 
@@ -251,7 +255,7 @@ const saveFile = () => {
   const file_content = getContent();
   // console.log("saveFile file_content", file_content);
   let eventBus: EventBus = new EventBus(EventBusType.FileSaved);
-  fs.write(file_path, file_content).then(() => {
+  fs.write(file_path, file_content, repoName.value).then(() => {
     eventBus.emit();
     ElMessage({
       message: "文章保存成功",

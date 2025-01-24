@@ -5,13 +5,16 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import CryptoJS from "crypto-js";
 import api from "@/utils/api";
 import fs from "@/utils/fs";
-import { useGlobalStore } from "@/stores";
+import { useGlobalStore, useSettingsStore } from "@/stores";
+import { computed } from "vue";
 
 const globalStore = useGlobalStore();
+const settingsStore = useSettingsStore();
 
 const loading = ref(false);
 const isRotating = ref(false);
 const messageInput = ref("");
+const repoName = computed(() => settingsStore.settings["基本配置"].repoName);
 
 enum FileAction {
   CREATE = "create",
@@ -60,7 +63,7 @@ const calculateFileSha = async (filePath: string): Promise<string> => {
     }
     return totalLength;
   };
-  const fileContent = await fs.get(filePath);
+  const fileContent = await fs.get(filePath, repoName.value);
   const size = new TextEncoder().encode(fileContent).length;
   const header = `blob ${size}\0`;
   const store = header + fileContent;
@@ -79,7 +82,7 @@ const refreshDiffData = async () => {
       remoteItems[item.path] = item.sha;
     }
   });
-  let localItems: string[] = await fs.list();
+  let localItems: string[] = await fs.list(repoName.value);
   for (const item of localItems) {
     if (remoteItems[item]) {
       let sha = await calculateFileSha(item);
@@ -183,7 +186,7 @@ const undo = (file: string | null = null) => {
   )
     .then(() => {
       undoFiles.forEach((f) => {
-        fs.delete(f);
+        fs.delete(f, repoName.value);
       });
       refreshDiffData();
       ElMessage({
@@ -215,7 +218,7 @@ const commit = async () => {
   const files = [];
   for (const file of diff_files.value) {
     const filePath = file[0];
-    const fileContent = await fs.get(filePath);
+    const fileContent = await fs.get(filePath, repoName.value);
     files.push({ path: filePath, content: fileContent });
   }
 
