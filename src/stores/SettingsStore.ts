@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, Ref, watch, toRef } from "vue";
+import { format } from "date-fns";
 
 export const useSettingsStore = defineStore("settings", () => {
   enum EditorMode {
@@ -28,7 +29,9 @@ export const useSettingsStore = defineStore("settings", () => {
   const repoName = ref<string>(""); // 仓库名称
   const repoBranch = ref<string>(""); // 使用的仓库分支
   const repoPath = ref<string>(""); // 使用的仓库根路径
-  const defaultFrontMatter = ref<string>(""); // 默认创建文章时的 front matter
+  const defaultFrontMatter = ref<string>(
+    `title: "{{title}}"\ndescription: ""\ndate: {{currentDate}}\nlastmod: {{currentDate}}\ndraft: {{draft}}`
+  ); // 默认创建文章时的 front matter
   const dateTimeFormat = ref<string>("yyyy-MM-dd'T'HH:mm:ssxxxxx"); // 日期时间格式
   const editorDefaultMode = ref<EditorMode>(EditorMode.IR); // 默认编辑器模式
   const editorMaxWidth = ref<number>(800); // 编辑器最大宽度
@@ -69,8 +72,7 @@ export const useSettingsStore = defineStore("settings", () => {
     repoName: "仓库名称：指定远程仓库的名称。",
     repoBranch: "仓库分支：指定要使用的远程仓库分支。",
     repoPath: "仓库路径：指定本地仓库的路径。",
-    defaultFrontMatter:
-      "默认 front matter：用于新建文件时的默认 front matter 配置。",
+    defaultFrontMatter: `<p>默认 front matter：用于新建文件时的默认 front matter 配置。</p><p>书写格式见<a style="color:#4dbbf7" target="_blank" href="https:inkstone.work/">官方文档</a></p>`,
     dateTimeFormat:
       "日期时间格式：设置日期时间的格式，用于 front matter 中的日期时间字段。",
     editorDefaultMode:
@@ -118,7 +120,7 @@ export const useSettingsStore = defineStore("settings", () => {
     editorTypewriterMode: true,
     editorAutoSpace: true,
     editorGfmAutoLink: true,
-  }
+  };
 
   const settings: Record<string, Record<string, any>> = {
     基本配置: {
@@ -162,7 +164,7 @@ export const useSettingsStore = defineStore("settings", () => {
         }
       });
     }
-  }
+  };
 
   // 监测设置项变化
   for (let groupname in settings) {
@@ -182,6 +184,21 @@ export const useSettingsStore = defineStore("settings", () => {
     saveSettings();
   }
 
+  const getfrontMatter = (title: string = "", draft: boolean = false) => {
+    let currentDate = format(new Date(), dateTimeFormat.value);
+
+    let values: Record<string, string> = {
+      title,
+      currentDate,
+      draft: draft ? "true" : "false",
+    };
+
+    return defaultFrontMatter.value.replace(
+      /{{\s*(\w+)\s*}}/g,
+      (_, key) => values[key] || ""
+    );
+  };
+
   return {
     InputType,
     settings,
@@ -189,5 +206,6 @@ export const useSettingsStore = defineStore("settings", () => {
     settingsInputLabels,
     settingsInputDescriptions,
     selectInputOptions,
+    getfrontMatter,
   };
 });

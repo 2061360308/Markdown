@@ -18,6 +18,7 @@ import fs from "@/utils/fs";
 import api from "@/utils/api";
 
 import { useSettingsStore, useTabsStore, useGlobalStore } from "@/stores";
+import { tr } from "element-plus/es/locale";
 
 const tabsStore = useTabsStore();
 const settingsStore = useSettingsStore();
@@ -451,9 +452,9 @@ const createFile = () => {
   let content = "";
 
   if (createFileValue.value.type !== "file") {
-    let draft = "false";
+    let draft = false;
     if (createFileValue.value.type === "draft") {
-      draft = "true";
+      draft = true;
     }
     let fileNameWithExtension = path.substring(path.lastIndexOf("/") + 1);
     // 去掉文件后缀
@@ -462,11 +463,11 @@ const createFile = () => {
       fileNameWithExtension.lastIndexOf(".")
     );
     console.log("fileName", fileName);
-    const formattedDate = format(
-      new Date(),
-      settingsStore.settings["编辑器配置"].dateTimeFormat
-    );
-    content = `---\ntitle: ${fileName}\ndata: ${formattedDate}\nlastmod:  ${formattedDate}\ndraft: false\n---`;
+    // const formattedDate = format(
+    //   new Date(),
+    //   settingsStore.settings["编辑器配置"].dateTimeFormat
+    // );
+    content = `---\n${settingsStore.getfrontMatter(fileName, draft)}\n---`;
   }
 
   fs.write(path, content).then((res) => {

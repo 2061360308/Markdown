@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from "vue";
 import { useSettingsStore, useGlobalStore } from "@/stores";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
 import { checkRepo, checkInstalledApp } from "@/utils/api";
 import { decryptToken } from "@/utils/encryptToken";
@@ -14,7 +14,19 @@ const globalStore = useGlobalStore();
 const containerRef = ref<HTMLElement | null>(null);
 
 const repoName = computed(() => settingsStore.settings["基本配置"].repoName);
-const branchName = computed(() => settingsStore.settings["基本配置"].repoBranch);
+const branchName = computed(
+  () => settingsStore.settings["基本配置"].repoBranch
+);
+
+const groupNames = computed(() => Object.keys(settingsStore.settings));
+const settingNames = computed(() => {
+  let names: Record<string, string[]> = {};
+  for (let groupName in settingsStore.settings) {
+    names[groupName] = Object.keys(settingsStore.settings[groupName]);
+  }
+  return names;
+});
+
 const loading = ref(false);
 
 onMounted(async () => {
@@ -150,22 +162,24 @@ const handleClick = (e: MouseEvent) => {
         <div
           class="group"
           :id="'group-' + groupName"
-          v-for="groupName in Object.keys(settingsStore.settings)"
+          v-for="groupName in groupNames"
         >
           <div class="setting-group-title">{{ groupName }}</div>
-          <el-form-item
-            v-for="settingName in Object.keys(
-              settingsStore.settings[groupName]
-            )"
-          >
+          <el-form-item v-for="settingName in settingNames[groupName]">
             <template #label>
-              <el-tooltip
-                class="box-item"
-                effect="dark"
-                :content="settingsStore.settingsInputDescriptions[settingName]"
-                placement="right-start"
-                >{{ settingsStore.settingsInputLabels[settingName] }}
-              </el-tooltip>
+              <div>
+                {{ settingsStore.settingsInputLabels[settingName] }}
+                <el-tooltip
+                  class="box-item"
+                  effect="dark"
+                  :content="
+                    settingsStore.settingsInputDescriptions[settingName]
+                  "
+                  raw-content
+                  placement="right-start"
+                  ><font-awesome-icon :icon="['fas', 'circle-question']" />
+                </el-tooltip>
+              </div>
             </template>
 
             <el-input
@@ -208,9 +222,9 @@ const handleClick = (e: MouseEvent) => {
             >
               <el-option
                 v-for="option in settingsStore.selectInputOptions[settingName]"
-                :key="option"
-                :label="option"
-                :value="option"
+                :key="String(option)"
+                :label="String(option)"
+                :value="String(option)"
               />
             </el-select>
           </el-form-item>
@@ -228,7 +242,7 @@ const handleClick = (e: MouseEvent) => {
         <el-anchor-link
           :href="'#group-' + groupName"
           :title="groupName"
-          v-for="groupName in Object.keys(settingsStore.settings)"
+          v-for="groupName in groupNames"
         />
       </el-anchor>
     </div>
