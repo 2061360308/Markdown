@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch, computed, Ref } from "vue";
 import { useSettingsStore, useGlobalStore } from "@/stores";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
 import { checkRepo, checkInstalledApp } from "@/utils/api";
 import { decryptToken } from "@/utils/encryptToken";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { githubAppName } from "@/config";
 
 const settingsStore = useSettingsStore();
@@ -28,6 +28,7 @@ const settingNames = computed(() => {
 });
 
 const loading = ref(false);
+const userInfo: Ref<Record<string, any>> = ref({});
 
 onMounted(async () => {
   // 初始化时更新仓库选项
@@ -57,6 +58,11 @@ onMounted(async () => {
   );
 
   updataBranchesOptions(); // 初始化时更新分支选项
+
+  let result = await api.getUserInfo();
+  if (result) {
+    userInfo.value = result;
+  }
 });
 
 const updataBranchesOptions = async () => {
@@ -153,6 +159,24 @@ watch(branchName, async () => {
 const handleClick = (e: MouseEvent) => {
   e.preventDefault();
 };
+
+const logout = () => {
+  ElMessageBox.confirm("确定要退出登录吗？", "Warning", {
+    confirmButtonText: "退出",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      localStorage.removeItem("access_token");
+      globalStore.goLogin();
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: "logout canceled",
+      });
+    });
+};
 </script>
 
 <template>
@@ -232,6 +256,19 @@ const handleClick = (e: MouseEvent) => {
       </el-form>
     </div>
     <div class="slider-anchors">
+      <div class="user-box">
+        <a :href="userInfo.html_url" target="_blank">
+          <el-image :src="userInfo.avatar_url" />
+          <div class="info">
+            <div class="name">{{ userInfo.name }}</div>
+            <div class="bio">{{ userInfo.bio }}</div>
+            <div class="login">{{ userInfo.login }}</div>
+          </div>
+        </a>
+        <el-button type="danger" plain style="width: 100%" @click="logout">
+          退出登录
+        </el-button>
+      </div>
       <el-anchor
         :container="containerRef"
         direction="vertical"
@@ -275,5 +312,60 @@ const handleClick = (e: MouseEvent) => {
   margin-bottom: 10px;
   padding: 10px;
   border-bottom: 2px solid var(--el-border-color-light);
+}
+
+.user-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.user-box .el-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+}
+
+.user-box .info {
+  position: absolute;
+  top: 0;
+  left: auto;
+
+  width: 150px;
+  height: 150px;
+  padding: 10px;
+  border-radius: 50%;
+  margin-top: 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.user-box:hover .info {
+  opacity: 1;
+}
+
+.user-box .name {
+  font-size: 25px;
+  font-weight: bold;
+}
+
+.user-box .bio {
+  font-size: 14px;
+  /* color: var(--el-text-color-secondary); */
+}
+
+.user-box .login {
+  font-size: 14px;
+  /* color: var(--el-text-color-secondary); */
 }
 </style>

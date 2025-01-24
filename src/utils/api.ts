@@ -14,6 +14,7 @@ export const checkToken = async (token: string): Promise<string | boolean> => {
     const { data: user } = await octokit.rest.users.getAuthenticated();
     // this.owner = user.login;
     // console.log("User info:", this.owner, this.repo);
+    console.log("User info:", user);
     return user.login;
   } catch (error) {
     // tokenValid = false;
@@ -205,6 +206,24 @@ class GithubApi {
 
     this.ready = true;
     return result;
+  };
+
+  getUserInfo = async () => {
+    try {
+      // 尝试获取用户信息
+      if (!this.octokit) {
+        throw new Error("Octokit is not initialized");
+      }
+
+      const { data: user } = await this.octokit.rest.users.getAuthenticated();
+      // this.owner = user.login;
+      // console.log("User info:", this.owner, this.repo);
+      return user;
+    } catch (error) {
+      // tokenValid = false;
+      console.error("Error fetching user info:", error);
+      return false;
+    }
   };
 
   getRepoNames = async () => {
