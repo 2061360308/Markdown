@@ -14,6 +14,7 @@ const globalStore = useGlobalStore();
 const containerRef = ref<HTMLElement | null>(null);
 
 const repoName = computed(() => settingsStore.settings["基本配置"].repoName);
+const branchName = computed(() => settingsStore.settings["基本配置"].repoBranch);
 const loading = ref(false);
 
 onMounted(async () => {
@@ -131,6 +132,11 @@ const updateRepo = async () => {
 };
 
 watch(repoName, updateRepo);
+
+watch(branchName, async () => {
+  // 更新api配置
+  api.branch = settingsStore.settings["基本配置"].repoBranch;
+});
 
 const handleClick = (e: MouseEvent) => {
   e.preventDefault();

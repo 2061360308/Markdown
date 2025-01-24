@@ -247,9 +247,9 @@ class GithubApi {
   };
 
   getRepoTree = async (
-    branch = "main"
   ): Promise<RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]> => {
     // 获取仓库的文件目录树
+    console.log("getRepoTree", this.branch);
     try {
       if (!this.octokit) {
         throw new Error("Octokit is not initialized");
@@ -257,7 +257,7 @@ class GithubApi {
       const response = await this.octokit.git.getTree({
         owner: this.owner as string,
         repo: this.repo as string,
-        tree_sha: branch,
+        tree_sha: this.branch as string,
         recursive: "true",
       });
       if (DEBUG) {
@@ -418,67 +418,6 @@ class GithubApi {
 const instance = new GithubApi();
 
 export default instance;
-
-// 转换 GitHub API 返回的文件目录树为所需格式
-// export const transformTree = (tree) => {
-//   const result = [];
-//   const pathMap = {};
-
-//   tree.forEach((item) => {
-//     const parts = item.path.split("/");
-//     let currentLevel = result;
-
-//     parts.forEach((part, index) => {
-//       const currentPath = parts.slice(0, index + 1).join("/");
-//       const existingPath = pathMap[currentPath];
-
-//       if (existingPath) {
-//         currentLevel = existingPath.children;
-//       } else {
-//         const newItem = {
-//           title: part,
-//           isLeaf: item.type === "blob",
-//           isExpanded: false,
-//           data: {
-//             path: item.path,
-//             mode: item.mode,
-//             type: item.type,
-//             size: item.size,
-//             sha: item.sha,
-//           },
-//           children: [],
-//         };
-
-//         currentLevel.push(newItem);
-//         pathMap[currentPath] = newItem;
-
-//         if (item.type === "tree") {
-//           currentLevel = newItem.children;
-//         }
-//       }
-//     });
-//   });
-
-//   // 排序函数，将文件夹放在前面，并按字母顺序排序
-//   const sortItems = (items) => {
-//     items.sort((a, b) => {
-//       if (a.isLeaf === b.isLeaf) {
-//         return a.title.localeCompare(b.title);
-//       }
-//       return a.isLeaf ? 1 : -1;
-//     });
-
-//     items.forEach((item) => {
-//       if (!item.isLeaf && item.children.length > 0) {
-//         sortItems(item.children);
-//       }
-//     });
-//   };
-
-//   sortItems(result);
-
-//   return result;
-// };
 
 // 解码 Base64 内容为 UTF-8
 const decodeBase64 = (content: string) => {
