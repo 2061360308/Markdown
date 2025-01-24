@@ -68,7 +68,7 @@ const handleMenuSelect = (index: string) => {
       activeMenu.value = Menu.Changes;
       break;
     case Menu.Settings:
-      tabsStore.addTab(tabsStore.TabType.SettingsPanel, "gear", {title: "设置"}); // 打开设置面板页
+      tabsStore.addTab(tabsStore.TabType.SettingsPanel, "gear", {title: "设置"}, "setting"); // 打开设置面板页
       break;
   }
 };
