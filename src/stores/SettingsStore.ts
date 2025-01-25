@@ -220,17 +220,10 @@ export const useSettingsStore = defineStore("settings", () => {
       draft: draft ? "true" : "false",
     };
 
-    // return defaultFrontMatter.value.replace(
-    //   /{{\s*(\w+)\s*}}/g,
-    //   (_, key) => values[key] || ""
-    // );
     return replaceTemplate(defaultFrontMatter.value, values);
   };
 
   const getImageString = (name: string, url: string) => {
-    // return defaultImageLinkString.value.replace(/{{\s*(\w+)\s*}}/g, (_, key) =>
-    //   key === "name" ? name : key === "url" ? url : ""
-    // );
     return replaceTemplate(defaultImageLinkString.value, { name, url });
   };
 

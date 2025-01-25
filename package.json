@@ -25,7 +25,7 @@
     "js-yaml": "^4.1.0",
     "mitt": "^3.0.1",
     "pinia": "^2.3.0",
-    "s3-image-hosting": "^1.0.5",
+    "s3-image-hosting": "^1.0.7",
     "sl-vue-tree-next": "^0.0.13",
     "splitpanes": "^3.1.5",
     "vditor": "^3.10.8",
