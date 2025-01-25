@@ -1,7 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { githubAppId } from "@/config";
-import CryptoJS from "crypto-js";
 
 const DEBUG = true;
 
