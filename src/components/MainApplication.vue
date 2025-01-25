@@ -9,9 +9,11 @@ import DiffManager from "./DiffManager.vue";
 import EditingManager from "./EditingManager.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
-import { useTabsStore } from "@/stores";
+import { useTabsStore, useSettingsStore } from "@/stores";
+import imagehosting from "@/utils/imagehosting";
 
 const tabsStore = useTabsStore();
+const settingsStore = useSettingsStore();
 const router = useRouter();
 
 const leftPaneSize = ref(20);
@@ -20,10 +22,24 @@ const activeMenu = ref("files");
 onMounted(async () => {
   if (!api.ready) {
     // 判断是否是跳过登录的情况
-    if(!localStorage.getItem("jumpLogin")) {
+    if (!localStorage.getItem("jumpLogin")) {
       router.push({ name: "login" });
     }
-    // 加载远程配置
+  } else {
+    console.log(settingsStore.settings["图床配置"].bucket);
+    console.log(settingsStore.settings["图床配置"].endpoint);
+    console.log(settingsStore.settings["图床配置"].region);
+    console.log(settingsStore.settings["图床配置"].accessKeyId);
+    console.log(settingsStore.settings["图床配置"].secretAccessKey);
+
+    // 尝试初始化 图床配置
+    imagehosting.init(
+      settingsStore.settings["图床配置"].bucket,
+      settingsStore.settings["图床配置"].endpoint,
+      settingsStore.settings["图床配置"].region,
+      settingsStore.settings["图床配置"].accessKeyId,
+      settingsStore.settings["图床配置"].secretAccessKey,
+    );
   }
 });
 
@@ -68,7 +84,12 @@ const handleMenuSelect = (index: string) => {
       activeMenu.value = Menu.Changes;
       break;
     case Menu.Settings:
-      tabsStore.addTab(tabsStore.TabType.SettingsPanel, "gear", {title: "设置"}, "setting"); // 打开设置面板页
+      tabsStore.addTab(
+        tabsStore.TabType.SettingsPanel,
+        "gear",
+        { title: "设置" },
+        "setting"
+      ); // 打开设置面板页
       break;
   }
 };

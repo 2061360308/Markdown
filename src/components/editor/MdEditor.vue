@@ -17,6 +17,7 @@ import { ElMessage } from "element-plus";
 import FrontMatterEditor from "./FrontMatterEditor.vue";
 
 import fs from "@/utils/fs";
+import imagehosting from "@/utils/imagehosting";
 import { useSettingsStore, useEventStore, useTabsStore } from "@/stores";
 import { onMounted } from "vue";
 
@@ -26,6 +27,8 @@ const eventStore = useEventStore();
 
 // 文章标题
 const fileName = ref("");
+
+const loading = ref(false);
 
 const frontMatterString: Ref<string> = ref(""); // frontMatter 解析出来的对象
 
@@ -157,6 +160,10 @@ const createVditorInstance = () => {
           totalWordsNum.value = length;
         },
       },
+      upload: {
+        accept: ".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg", // 允许上传的文件类型
+        handler: uploadImage,
+      },
       after: () => {
         // 确保 vditorInstance 完全初始化后再进行操作
         fileName.value = props.path.split("/").pop() || ""; // 设置文件名
@@ -194,7 +201,7 @@ onMounted(() => {
       currentMode.value = vditorInstance.vditor.currentMode;
     }
   }, 1000);
-  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener("keydown", handleKeyDown);
 });
 
 onBeforeUnmount(() => {
@@ -210,7 +217,7 @@ onBeforeUnmount(() => {
   }
 
   clearInterval(modeInerval);
-  window.removeEventListener('keydown', handleKeyDown);
+  window.removeEventListener("keydown", handleKeyDown);
 });
 
 const splitFrontMatter = (content: string): Record<string, string> => {
@@ -299,10 +306,69 @@ const handleKeyDown = (event: KeyboardEvent) => {
     saveFile();
   }
 };
+
+const handleDragOver = (event: { preventDefault: () => void }) => {
+  // 阻止默认行为以允许拖放
+  event.preventDefault();
+};
+
+const handleDrop = (event: DragEvent) => {
+  // 获取拖入的文件
+  const dataTransfer = event.dataTransfer;
+  if (dataTransfer) {
+    const files = dataTransfer.files;
+    if (files.length > 0) {
+      console.log("拖入的文件:", files);
+    }
+  }
+};
+
+const uploadImage = async (files: File[]) => {
+  loading.value = true;
+
+  if (!imagehosting.ready) {
+    console.error("图床未初始化");
+  }
+
+  const { success, failed } = await imagehosting.upload(files);
+  let content = "\n";
+  for (let i = 0; i < success.length; i++) {
+    const fileExtension = success[i].file.name.split(".").pop() || "";
+    let rootUrl = settingsStore.settings["图床配置"].rootUrl;
+    if (!rootUrl.endsWith("/")) {
+      rootUrl += "/";
+    }
+    let imgUrl = `${rootUrl}${success[i].hash}.${fileExtension}`;
+
+    content += `${settingsStore.getImageString(
+      success[i].file.name,
+      imgUrl
+    )}\n`;
+  }
+
+  vditorInstance?.insertValue(content);
+
+  if (failed.length > 0) {
+    for (let i = 0; i < failed.length; i++) {
+      ElMessage({
+        message: `图片 ${failed[i].name} 上传失败`,
+        type: "warning",
+      });
+    }
+  }
+
+  loading.value = false;
+  return null;
+};
 </script>
 
 <template>
-  <div class="md-editor-box">
+  <div
+    class="md-editor-box"
+    @dragover.prevent="handleDragOver"
+    @drop.prevent="handleDrop"
+    v-loading="loading"
+  >
     <div
       class="editor-region"
       :style="

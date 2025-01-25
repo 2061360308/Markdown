@@ -39,6 +39,15 @@ export const useSettingsStore = defineStore("settings", () => {
   const editorAutoSpace = ref<boolean>(true); // 自动空格
   const editorGfmAutoLink = ref<boolean>(true); // 自动链接
 
+  // 图床配置
+  const bucket = ref<string>(""); // bucket name
+  const endpoint = ref<string>(""); // endpoint eg: https://cos.ap-chengdu.myqcloud.com
+  const region = ref<string>(""); // region eg: ap-chengdu
+  const accessKeyId = ref<string>(""); // accessKeyId
+  const secretAccessKey = ref<string>(""); // secretAccessKey
+  const rootUrl = ref<string>(""); // 图床根的URL
+  const defaultImageLinkString = ref<string>("![{{ name }}]({{ url }})"); // 默认插入图片链接的字符串
+
   const settingsInputTypes: Record<string, InputType> = {
     themeName: InputType.selectInput,
     repoName: InputType.selectInput,
@@ -51,6 +60,13 @@ export const useSettingsStore = defineStore("settings", () => {
     editorTypewriterMode: InputType.booleanInput,
     editorAutoSpace: InputType.booleanInput,
     editorGfmAutoLink: InputType.booleanInput,
+    bucket: InputType.lineInput,
+    endpoint: InputType.lineInput,
+    region: InputType.lineInput,
+    accessKeyId: InputType.lineInput,
+    secretAccessKey: InputType.lineInput,
+    rootUrl: InputType.lineInput,
+    defaultImageLinkString: InputType.textInput,
   };
 
   const settingsInputLabels: Record<string, string> = {
@@ -65,6 +81,13 @@ export const useSettingsStore = defineStore("settings", () => {
     editorTypewriterMode: "打字机模式",
     editorAutoSpace: "自动空格",
     editorGfmAutoLink: "自动链接",
+    bucket: "bucket",
+    endpoint: "endpoint",
+    region: "region",
+    accessKeyId: "accessKeyId",
+    secretAccessKey: "secretAccessKey",
+    rootUrl: "图床根的URL",
+    defaultImageLinkString: "默认插入图片链接的字符串",
   };
 
   const settingsInputDescriptions: Record<string, string> = {
@@ -82,22 +105,13 @@ export const useSettingsStore = defineStore("settings", () => {
       "打字机模式：启用或禁用打字机模式，使当前行始终保持在视图中间。",
     editorAutoSpace: "自动空格：启用或禁用自动空格功能。",
     editorGfmAutoLink: "自动链接：启用或禁用 GitHub 风格的自动链接功能。",
-    editorLineNumbers: "显示行号：启用或禁用编辑器中的行号显示。",
-    editorHighlightActiveLine:
-      "高亮当前行：启用或禁用高亮显示编辑器中的当前行。",
-    editorTabSize: "Tab 大小：设置编辑器中 Tab 字符的宽度。",
-    editorFontFamily: "字体：设置编辑器中使用的字体。",
-    editorFontSize: "字体大小：设置编辑器中使用的字体大小。",
-    editorLineHeight: "行高：设置编辑器中行与行之间的高度。",
-    editorTheme: "编辑器主题：设置编辑器的配色主题。",
-    editorAutoSave: "自动保存：启用或禁用编辑器的自动保存功能。",
-    editorSpellCheck: "拼写检查：启用或禁用编辑器中的拼写检查功能。",
-    editorCodeFolding: "代码折叠：启用或禁用编辑器中的代码折叠功能。",
-    editorWordWrap: "自动换行：启用或禁用编辑器中的自动换行功能。",
-    editorShowWhitespace: "显示空白字符：启用或禁用编辑器中显示空白字符。",
-    editorBracketMatching: "括号匹配：启用或禁用编辑器中的括号匹配功能。",
-    editorAutoComplete: "自动补全：启用或禁用编辑器中的自动补全功能。",
-    editorLinting: "代码检查：启用或禁用编辑器中的代码检查功能。",
+    bucket: "bucket名字",
+    endpoint: "endpoint，例如：https://cos.ap-chengdu.myqcloud.com",
+    region: "region，例如：ap-chengdu",
+    accessKeyId: "accessKeyId",
+    secretAccessKey: "secretAccessKey",
+    rootUrl: "图床根的URL",
+    defaultImageLinkString: `<p>默认插入图片链接的字符串</p><p>书写格式见<a style="color:#4dbbf7" target="_blank" href="https:inkstone.work/">官方文档</a></p>`,
   };
 
   const selectInputOptions: Record<string, Ref<string[]>> = {
@@ -137,6 +151,15 @@ export const useSettingsStore = defineStore("settings", () => {
       editorTypewriterMode: editorTypewriterMode,
       editorAutoSpace: editorAutoSpace,
       editorGfmAutoLink: editorGfmAutoLink,
+    },
+    图床配置: {
+      bucket: bucket,
+      endpoint: endpoint,
+      region: region,
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey,
+      rootUrl: rootUrl,
+      defaultImageLinkString: defaultImageLinkString,
     },
   };
 
@@ -184,6 +207,10 @@ export const useSettingsStore = defineStore("settings", () => {
     saveSettings();
   }
 
+  const replaceTemplate = (template: string, values: Record<string, string>) => {
+    return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => values[key] || "");
+  }
+
   const getfrontMatter = (title: string = "", draft: boolean = false) => {
     let currentDate = format(new Date(), dateTimeFormat.value);
 
@@ -193,10 +220,18 @@ export const useSettingsStore = defineStore("settings", () => {
       draft: draft ? "true" : "false",
     };
 
-    return defaultFrontMatter.value.replace(
-      /{{\s*(\w+)\s*}}/g,
-      (_, key) => values[key] || ""
-    );
+    // return defaultFrontMatter.value.replace(
+    //   /{{\s*(\w+)\s*}}/g,
+    //   (_, key) => values[key] || ""
+    // );
+    return replaceTemplate(defaultFrontMatter.value, values);
+  };
+
+  const getImageString = (name: string, url: string) => {
+    // return defaultImageLinkString.value.replace(/{{\s*(\w+)\s*}}/g, (_, key) =>
+    //   key === "name" ? name : key === "url" ? url : ""
+    // );
+    return replaceTemplate(defaultImageLinkString.value, { name, url });
   };
 
   return {
@@ -207,5 +242,6 @@ export const useSettingsStore = defineStore("settings", () => {
     settingsInputDescriptions,
     selectInputOptions,
     getfrontMatter,
+    getImageString,
   };
 });

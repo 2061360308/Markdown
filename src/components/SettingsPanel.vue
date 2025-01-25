@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed, Ref } from "vue";
 import { useSettingsStore, useGlobalStore } from "@/stores";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
+import imagehosting from "@/utils/imagehosting";
 import { checkRepo, checkInstalledApp } from "@/utils/api";
 import { decryptToken } from "@/utils/encryptToken";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -26,6 +27,52 @@ const settingNames = computed(() => {
   }
   return names;
 });
+
+const imagehostingBucket = computed(
+  () => settingsStore.settings["图床配置"].bucket
+);
+const imagehostingEndpoint = computed(
+  () => settingsStore.settings["图床配置"].endpoint
+);
+const imagehostingRegion = computed(
+  () => settingsStore.settings["图床配置"].region
+);
+const imagehostingAccessKeyId = computed(
+  () => settingsStore.settings["图床配置"].accessKeyId
+);
+const imagehostingSecretAccessKey = computed(
+  () => settingsStore.settings["图床配置"].secretAccessKey
+);
+
+const imagehostingUseable: Ref<boolean> = ref(imagehosting.ready);
+
+watch(
+  [
+    imagehostingBucket,
+    imagehostingEndpoint,
+    imagehostingRegion,
+    imagehostingAccessKeyId,
+    imagehostingSecretAccessKey,
+  ],
+  async (
+    [newBucket, newEndpoint, newRegion, newAccessKeyId, newSecretAccessKey],
+    [oldBucket, oldEndpoint, oldRegion, oldAccessKeyId, oldSecretAccessKey]
+  ) => {
+    let result = await imagehosting.init(
+      newBucket as string,
+      newEndpoint as string,
+      newRegion as string,
+      newAccessKeyId as string,
+      newSecretAccessKey as string
+    );
+
+    if (!result) {
+      imagehostingUseable.value = false;
+    } else {
+      imagehostingUseable.value = true;
+    }
+  }
+);
 
 const loading = ref(false);
 const userInfo: Ref<Record<string, any>> = ref({});
@@ -254,6 +301,7 @@ const logout = () => {
           </el-form-item>
         </div>
       </el-form>
+      <div style="height: 100px"></div>
     </div>
     <div class="slider-anchors">
       <div class="user-box">
@@ -282,6 +330,9 @@ const logout = () => {
           v-for="groupName in groupNames"
         />
       </el-anchor>
+      <div class="imagehosting-pilot-lamp">
+        <div :class="`pilot-lamp ${imagehostingUseable ? 'useable': 'unuseable'}`"></div> 图床 {{  imagehostingUseable ? '可用' : '不可用' }}
+      </div>
     </div>
   </div>
 </template>
@@ -367,5 +418,29 @@ const logout = () => {
 .user-box .login {
   font-size: 14px;
   /* color: var(--el-text-color-secondary); */
+}
+
+.imagehosting-pilot-lamp {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 15px;
+  border-top: var(--el-border-color-darker) solid 2px;
+}
+
+.pilot-lamp {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.imagehosting-pilot-lamp .pilot-lamp.useable {
+  background-color: var(--el-color-success);
+}
+
+.imagehosting-pilot-lamp .pilot-lamp.unuseable {
+  background-color: var(--el-color-danger);
 }
 </style>
