@@ -8,6 +8,7 @@ import vueDevTools from "vite-plugin-vue-devtools";
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
+import { version } from './package.json';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -62,6 +63,9 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
     }),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   resolve: {
     extensions: [".js", ".vue", ".json", ".ts"],
     alias: {

@@ -7,6 +7,7 @@ import FileTree from "./FileTree.vue";
 import WorkSpace from "./WorkSpace.vue";
 import DiffManager from "./DiffManager.vue";
 import EditingManager from "./EditingManager.vue";
+import AboutApp from "./AboutApp.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
 import { useTabsStore, useSettingsStore } from "@/stores";
@@ -18,6 +19,7 @@ const router = useRouter();
 
 const leftPaneSize = ref(20);
 const activeMenu = ref("files");
+const aboutDialogVisible = ref(false);
 
 onMounted(async () => {
   if (!api.ready) {
@@ -83,6 +85,9 @@ const handleMenuSelect = (index: string) => {
     case Menu.Changes:
       activeMenu.value = Menu.Changes;
       break;
+    case Menu.About:
+      aboutDialogVisible.value = true;
+      break;
     case Menu.Settings:
       tabsStore.addTab(
         tabsStore.TabType.SettingsPanel,
@@ -147,6 +152,7 @@ const handleMenuSelect = (index: string) => {
         <WorkSpace />
       </pane>
     </splitpanes>
+    <AboutApp v-model:show="aboutDialogVisible" />
   </div>
 </template>
 

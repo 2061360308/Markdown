@@ -261,10 +261,6 @@ const updateTree = async () => {
     fileTree.value = transformTree(mixed);
 
     loading.value = false;
-    ElMessage({
-      type: "success",
-      message: "文件树已更新",
-    });
   }
 };
 
@@ -349,9 +345,17 @@ const titleBarCreateClick = () => {
     type: "tree",
     data: {
       path: "",
-    }
+    },
   };
   showCreateFileDialog(false, false);
+};
+
+const titleBarUpdateClick = async () => {
+  await updateTree();
+  ElMessage({
+    type: "success",
+    message: "文件树已更新",
+  });
 };
 
 // 删除文件
@@ -532,7 +536,7 @@ const createFile = () => {
             <font-awesome-icon :icon="['fas', 'file']" size="lg" />
           </template>
         </el-button>
-        <el-button circle @click="updateTree">
+        <el-button circle @click="titleBarUpdateClick">
           <template #icon>
             <font-awesome-icon :icon="['fas', 'arrows-rotate']" size="lg" />
           </template>
