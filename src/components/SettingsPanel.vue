@@ -79,6 +79,29 @@ const userInfo: Ref<Record<string, any>> = ref({});
 
 onMounted(async () => {
   // 初始化时更新仓库选项
+  if (!api.ready) {
+    settingsStore.settingsUsage = {
+      themeName: true,
+      repoName: false,
+      repoBranch: false,
+      repoPath: false,
+      defaultFrontMatter: true,
+      dateTimeFormat: true,
+      editorDefaultMode: true,
+      editorMaxWidth: true,
+      editorTypewriterMode: true,
+      editorAutoSpace: true,
+      editorGfmAutoLink: true,
+      bucket: false,
+      endpoint: false,
+      region: false,
+      accessKeyId: false,
+      secretAccessKey: false,
+      rootUrl: false,
+      defaultImageLinkString: false,
+    };
+    return;
+  }
   settingsStore.selectInputOptions.repoName = ref<string[]>([]);
   let repos = await api.getRepoNames();
 
@@ -259,6 +282,7 @@ const logout = () => {
                 settingsStore.settingsInputTypes[settingName] ===
                 settingsStore.InputType.lineInput
               "
+              :disabled="!settingsStore.settingsUsage[settingName]"
             />
             <el-input
               v-model="settingsStore.settings[groupName][settingName]"
@@ -269,6 +293,7 @@ const logout = () => {
                 settingsStore.settingsInputTypes[settingName] ===
                 settingsStore.InputType.textInput
               "
+              :disabled="!settingsStore.settingsUsage[settingName]"
             />
             <el-input-number
               v-model="settingsStore.settings[groupName][settingName]"
@@ -276,6 +301,7 @@ const logout = () => {
                 settingsStore.settingsInputTypes[settingName] ===
                 settingsStore.InputType.numberInput
               "
+              :disabled="!settingsStore.settingsUsage[settingName]"
             />
             <el-switch
               v-model="settingsStore.settings[groupName][settingName]"
@@ -283,6 +309,7 @@ const logout = () => {
                 settingsStore.settingsInputTypes[settingName] ===
                 settingsStore.InputType.booleanInput
               "
+              :disabled="!settingsStore.settingsUsage[settingName]"
             />
             <el-select
               v-model="settingsStore.settings[groupName][settingName]"
@@ -290,6 +317,7 @@ const logout = () => {
                 settingsStore.settingsInputTypes[settingName] ===
                 settingsStore.InputType.selectInput
               "
+              :disabled="!settingsStore.settingsUsage[settingName]"
             >
               <el-option
                 v-for="option in settingsStore.selectInputOptions[settingName]"
@@ -304,7 +332,7 @@ const logout = () => {
       <div style="height: 100px"></div>
     </div>
     <div class="slider-anchors">
-      <div class="user-box">
+      <div class="user-box" v-if="api.ready">
         <a :href="userInfo.html_url" target="_blank">
           <el-image :src="userInfo.avatar_url" />
           <div class="info">
@@ -330,8 +358,11 @@ const logout = () => {
           v-for="groupName in groupNames"
         />
       </el-anchor>
-      <div class="imagehosting-pilot-lamp">
-        <div :class="`pilot-lamp ${imagehostingUseable ? 'useable': 'unuseable'}`"></div> 图床 {{  imagehostingUseable ? '可用' : '不可用' }}
+      <div class="imagehosting-pilot-lamp" v-if="api.ready">
+        <div
+          :class="`pilot-lamp ${imagehostingUseable ? 'useable' : 'unuseable'}`"
+        ></div>
+        图床 {{ imagehostingUseable ? "可用" : "不可用" }}
       </div>
     </div>
   </div>

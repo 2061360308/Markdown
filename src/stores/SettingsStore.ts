@@ -3,7 +3,7 @@ import { ref, computed, Ref, watch, toRef } from "vue";
 import { format } from "date-fns";
 import api from "@/utils/api";
 import CryptoJS from "crypto-js";
-import { ca } from "element-plus/es/locale";
+import { ca, fa } from "element-plus/es/locale";
 
 export const useSettingsStore = defineStore("settings", () => {
   enum EditorMode {
@@ -137,6 +137,13 @@ export const useSettingsStore = defineStore("settings", () => {
     editorTypewriterMode: true,
     editorAutoSpace: true,
     editorGfmAutoLink: true,
+    bucket: true,
+    endpoint: true,
+    region: true,
+    accessKeyId: true,
+    secretAccessKey: true,
+    rootUrl: true,
+    defaultImageLinkString: true,
   };
 
   const settings: Record<string, Record<string, any>> = {
@@ -302,6 +309,7 @@ export const useSettingsStore = defineStore("settings", () => {
     settingsInputLabels,
     settingsInputDescriptions,
     selectInputOptions,
+    settingsUsage,
     getfrontMatter,
     getImageString,
     syncRemoteSettings,
