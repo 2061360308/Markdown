@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { githubAppId } from "@/config";
+import CryptoJS from "crypto-js";
 
 const DEBUG = true;
 
@@ -132,6 +133,10 @@ export const checkInstalledApp = async (
 };
 
 class GithubApi {
+  private description: string =
+    "砚台编辑器设置项。请不要更改。Inkstone Settings Gist.Please do not make any changes.";
+  private filename: string = "inkstone-settings.encrypted";
+
   ready: boolean = false;
   octokit: Octokit | null = null;
   owner: string | null = null;
@@ -265,8 +270,9 @@ class GithubApi {
     }
   };
 
-  getRepoTree = async (
-  ): Promise<RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]> => {
+  getRepoTree = async (): Promise<
+    RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]
+  > => {
     // 获取仓库的文件目录树
     console.log("getRepoTree", this.branch);
     try {
@@ -430,6 +436,97 @@ class GithubApi {
     } catch (error) {
       console.error("Error committing changes:", error);
       throw error;
+    }
+  };
+
+  // 查找 Gist
+  private findGist = async (): Promise<string | null> => {
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
+
+    try {
+      const response = await this.octokit.gists.list();
+      const gist = response.data.find(
+        (gist) => gist.description === this.description
+      );
+      return gist ? gist.id : null;
+    } catch (error) {
+      console.error("Error finding Gist:", error);
+      return null;
+    }
+  };
+
+  // 上传设置（创建或更新 Gist）
+  uploadSettings = async (content: string) => {
+    console.log("uploadSettings", content);
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
+
+    try {
+      const gistId = await this.findGist();
+      if (gistId) {
+        // 更新 Gist
+        const response = await this.octokit.gists.update({
+          gist_id: gistId,
+          files: {
+            [this.filename]: {
+              content,
+            },
+          },
+        });
+        // console.log(`Gist updated successfully: ${response.data.html_url}`);
+      } else {
+        // 创建 Gist
+        const response = await this.octokit.gists.create({
+          description: this.description,
+          public: false, // 设置为私密 Gist
+          files: {
+            [this.filename]: {
+              content,
+            },
+          },
+        });
+        // console.log(`Gist created successfully: ${response.data.html_url}`);
+      }
+    } catch (error) {
+      console.error("Error uploading settings:", error);
+    }
+  };
+
+  // 读取私密 Gist
+  getSettings = async (): Promise<string|null> => {
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
+
+    try {
+      const gistId = await this.findGist();
+      if (!gistId) {
+        console.error("Gist not found.");
+        return null;
+      }
+
+      const response = await this.octokit.gists.get({
+        gist_id: gistId,
+      });
+
+      let file = null;
+      if (response.data.files) {
+        file = response.data.files[this.filename];
+      }
+
+      if (file) {
+        // console.log(`Gist content: ${file.content}`);
+        return file.content as string;
+      } else {
+        console.error(`File ${this.filename} not found in Gist.`);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error getting Gist:", error);
+      return null;
     }
   };
 }

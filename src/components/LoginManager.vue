@@ -110,6 +110,11 @@ onMounted(async () => {
       return;
     }
 
+    // 登录成功
+
+    // 同步远程设置
+    await settingsStore.syncRemoteSettings();
+
     loading.value = false;
     router.push({ name: "main" });
     return;
@@ -180,7 +185,7 @@ const jumpLogin = () => {
       <div class="left">
         <el-image
           style="height: 300px"
-          src="https://tse2-mm.cn.bing.net/th/id/OIP-C.XIWbKIsH6fzn5xpDq0AV4QHaKz?w=182&h=265&c=7&r=0&o=5&dpr=1.3&pid=1.7"
+          src="/img/login_cover.jpg"
           fit="cover"
           class="cover-image"
         />

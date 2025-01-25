@@ -1,6 +1,9 @@
 import { defineStore } from "pinia";
 import { ref, computed, Ref, watch, toRef } from "vue";
 import { format } from "date-fns";
+import api from "@/utils/api";
+import CryptoJS from "crypto-js";
+import { ca } from "element-plus/es/locale";
 
 export const useSettingsStore = defineStore("settings", () => {
   enum EditorMode {
@@ -163,6 +166,35 @@ export const useSettingsStore = defineStore("settings", () => {
     },
   };
 
+  let uploadTimeout: number | null = null;
+  const SETTINGS_STORAGE_KEY = "inkstone.settings";
+
+  const parseSettings = (encryptedSettings: string): Record<string, any> => {
+    try {
+      const bytes = CryptoJS.AES.decrypt(
+        encryptedSettings,
+        SETTINGS_STORAGE_KEY
+      );
+      const decryptedSettings = bytes.toString(CryptoJS.enc.Utf8);
+      const remoteData = JSON.parse(decryptedSettings);
+      return remoteData;
+    } catch (e) {
+      return {};
+    }
+  };
+
+  const scheduleUploadSettings = (settingsStr: string) => {
+    if (uploadTimeout !== null) {
+      clearTimeout(uploadTimeout);
+    }
+
+    uploadTimeout = window.setTimeout(() => {
+      if (api.ready) {
+        api.uploadSettings(settingsStr);
+      }
+    }, 30000); // 30秒延时
+  };
+
   const saveSettings = () => {
     // 保存设置
     let data: Record<string, any> = {};
@@ -174,7 +206,17 @@ export const useSettingsStore = defineStore("settings", () => {
       });
     }
 
-    localStorage.setItem("settings", JSON.stringify(data));
+    let settingsStr = JSON.stringify(data);
+    const encryptedSettings = CryptoJS.AES.encrypt(
+      settingsStr,
+      SETTINGS_STORAGE_KEY
+    ).toString();
+
+    localStorage.setItem("settings", encryptedSettings);
+
+    if (api.ready) {
+      scheduleUploadSettings(encryptedSettings); // 延时更新设置
+    }
   };
 
   const loadSettings = (data: Record<string, any>) => {
@@ -187,6 +229,26 @@ export const useSettingsStore = defineStore("settings", () => {
         }
       });
     }
+  };
+
+  const syncRemoteSettings = async () => {
+    // 合并远程设置
+    let settingsStr = await api.getSettings();
+    if (!settingsStr) {
+      return;
+    }
+    let data = parseSettings(settingsStr);
+    if (!data) {
+      return;
+    }
+    // 加载设置
+    let ignores = ["repoName", "repoBranch", "repoPath"];
+    // 去除不需要同步的设置
+    for (let ignore of ignores) {
+      delete data[ignore];
+    }
+
+    loadSettings(data);  // 加载设置
   };
 
   // 监测设置项变化
@@ -202,14 +264,20 @@ export const useSettingsStore = defineStore("settings", () => {
   // 初始化设置
   let data = localStorage.getItem("settings");
   if (data) {
-    loadSettings(JSON.parse(data));
+    let settingsData = parseSettings(data);
+    if (settingsData) {
+      loadSettings(settingsData);
+    }
   } else {
     saveSettings();
   }
 
-  const replaceTemplate = (template: string, values: Record<string, string>) => {
+  const replaceTemplate = (
+    template: string,
+    values: Record<string, string>
+  ) => {
     return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => values[key] || "");
-  }
+  };
 
   const getfrontMatter = (title: string = "", draft: boolean = false) => {
     let currentDate = format(new Date(), dateTimeFormat.value);
@@ -236,5 +304,6 @@ export const useSettingsStore = defineStore("settings", () => {
     selectInputOptions,
     getfrontMatter,
     getImageString,
+    syncRemoteSettings,
   };
 });
