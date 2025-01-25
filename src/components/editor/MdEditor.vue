@@ -18,6 +18,7 @@ import FrontMatterEditor from "./FrontMatterEditor.vue";
 
 import fs from "@/utils/fs";
 import imagehosting from "@/utils/imagehosting";
+import { convertImagesToMarkdownBase64 } from "@/utils/imagehosting";
 import { useSettingsStore, useEventStore, useTabsStore } from "@/stores";
 import { onMounted } from "vue";
 
@@ -323,11 +324,23 @@ const handleDrop = (event: DragEvent) => {
   }
 };
 
-const uploadImage = async (files: File[]) => {
+const uploadImage = async (files: File[]): Promise<null> => {
   loading.value = true;
 
   if (!imagehosting.ready) {
-    console.error("图床未初始化");
+    const base64Results = await convertImagesToMarkdownBase64(files);
+    let content = "\n";
+    for (let i = 0; i < base64Results.length; i++) {
+      const base64Result = base64Results[i];
+      content += `${settingsStore.getImageString(
+        base64Result.file.name,
+        base64Result.url
+      )}\n`;
+    }
+
+    vditorInstance?.insertValue(content);
+    loading.value = false;
+    return null;
   }
 
   const { success, failed } = await imagehosting.upload(files);

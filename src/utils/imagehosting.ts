@@ -45,11 +45,11 @@ class ImageHosting {
   upload = async (
     files: File[]
   ): Promise<{
-    success: Array<{file: File, hash: string}>;
+    success: Array<{ file: File; hash: string }>;
     failed: Array<File>;
   }> => {
     let failed: Array<File> = [];
-    let success: Array<{file: File, hash: string}> = [];
+    let success: Array<{ file: File; hash: string }> = [];
 
     if (!this.ready || !this.s3) {
       return {
@@ -112,3 +112,23 @@ class ImageHosting {
 const instance = new ImageHosting();
 
 export default instance;
+
+export const convertImagesToMarkdownBase64 = async (
+  files: File[]
+): Promise<Array<{ file: File; url: string }>> => {
+  const promises = files.map((file) => {
+    return new Promise<{ file: File; url: string }>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        resolve({ file: file, url: base64String });
+      };
+      reader.onerror = (error) => {
+        reject(error);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  return Promise.all(promises);
+};
