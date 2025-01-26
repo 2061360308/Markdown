@@ -31,13 +31,13 @@ import {
 import { lintKeymap } from "@codemirror/lint";
 
 const theme = {
-  workspaceBgColor: "#282c34",
+  workspaceBgColor: "#ffffff",
   workspaceBgColorLight: "#2f343f",
-  workspaceTextColor: "#abb2bf",
+  workspaceTextColor: "#24292e",
   gutterLineNumColor: "#5c6370",
-  currentLineColor: "#3b4252",
-  cursorColor: "#d8dee9",
-  selectionBgColor: "#4c566a",
+  currentLineColor: "#d9d9d9",
+  cursorColor: "#000",
+  selectionBgColor: "#d9d9d9",
 };
 
 import { markdown } from "@codemirror/lang-markdown";

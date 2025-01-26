@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
 import Vditor from "vditor";
 import { useSettingsStore } from "@/stores";
+import CommitHistory from "./CommitHistory.vue";
 // import { watch } from "fs";
 
 const props = defineProps({
@@ -14,11 +15,14 @@ const props = defineProps({
   },
 });
 
+const sha = ref<string>(props.path);
+
 const settingsStore = useSettingsStore();
 
 let content: string | null = null;
 const fileType = ref<string | null>(null);
 const mdPreviewMode = ref(false);
+const showHistoryDrawer = ref(false);
 
 // 最大编辑区域宽度,这里用于Markdown预览
 const MaxEditRegionWidth = settingsStore.settings["编辑器配置"].editorMaxWidth;
@@ -29,13 +33,50 @@ const codemirrorEditor = ref<InstanceType<typeof CodemirrorEditor> | null>(
 
 const markdownPreview = ref<HTMLDivElement | null>(null);
 
+const showCurrentVersion = async () => {
+  if (!props.path) {
+    return;
+  }
+
+  sha.value = props.path;
+
+  fileType.value = props.path.split(".").pop()?.toLowerCase() || "";
+
+  const res = await api.getFileContent(props.path);
+  if (res && codemirrorEditor.value) {
+    content = res.decodedContent;
+    codemirrorEditor.value.setEditorContent(res.decodedContent);
+
+    if (!markdownPreview.value || fileType.value !== "md") {
+      return;
+    }
+
+    Vditor.preview(markdownPreview.value, content, {
+      speech: {
+        enable: true,
+      },
+      anchor: 1,
+      mode: "dark",
+    });
+  }
+};
+
 watch(
   () => props.path,
   async (newPath) => {
-    if (newPath) {
-      fileType.value = newPath.split(".").pop()?.toLowerCase() || "";
+    showCurrentVersion();
+  },
+  { immediate: true }
+);
 
-      const res = await api.getFileContent(newPath);
+const changeSha = (newSha: string) => {
+  sha.value = newSha;
+  showHistoryDrawer.value = false;
+
+  console.log("changeSha", newSha);
+
+  if (newSha) {
+    api.getFileContent(props.path, newSha).then((res) => {
       if (res && codemirrorEditor.value) {
         content = res.decodedContent;
         codemirrorEditor.value.setEditorContent(res.decodedContent);
@@ -52,10 +93,9 @@ watch(
           mode: "dark",
         });
       }
-    }
-  },
-  { immediate: true }
-);
+    });
+  }
+};
 </script>
 
 <template>
@@ -72,6 +112,7 @@ watch(
             <el-button
               type="primary"
               size="small"
+              :disabled="fileType !== 'md'"
               @click="mdPreviewMode = false"
             >
               <font-awesome-icon :icon="['fas', 'code']"
@@ -85,7 +126,11 @@ watch(
             content="预览Markdown"
             placement="top"
           >
-            <el-button type="primary" size="small" @click="mdPreviewMode = true"
+            <el-button
+              type="primary"
+              size="small"
+              :disabled="fileType !== 'md'"
+              @click="mdPreviewMode = true"
               ><font-awesome-icon
                 :icon="['fas', 'magnifying-glass']" /></el-button
           ></el-tooltip>
@@ -97,9 +142,27 @@ watch(
           effect="dark"
           content="查看文件提交历史"
           placement="top"
-          ><el-button type="primary" size="small"
+          ><el-button
+            type="primary"
+            size="small"
+            @click="showHistoryDrawer = true"
             ><font-awesome-icon :icon="['fas', 'code-commit']"
           /></el-button>
+        </el-tooltip>
+      </div>
+      <div class="currentState">
+        <el-tooltip
+          class="box-item"
+          effect="dark"
+          content="当前版本"
+          placement="top"
+          ><el-button
+            type="primary"
+            size="small"
+            :disabled="path === sha"
+            @click="showCurrentVersion"
+            ><font-awesome-icon :icon="['fas', 'house-circle-check']" />
+          </el-button>
         </el-tooltip>
       </div>
     </div>
@@ -115,6 +178,9 @@ watch(
       ref="codemirrorEditor"
       v-show="!mdPreviewMode"
     />
+    <el-drawer v-model="showHistoryDrawer" title="提交历史" direction="rtl">
+      <CommitHistory :path="path" @change-sha="changeSha" />
+    </el-drawer>
   </div>
 </template>
 
@@ -124,8 +190,6 @@ watch(
   height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
-  /* background-color: #282c34; */
-  /* overflow: auto; */
 }
 
 .operation-bar {
@@ -133,16 +197,11 @@ watch(
   width: 80px;
   height: 24px;
   top: 60px;
-  right: 40px;
+  right: 60px;
 
   display: flex;
   gap: 2px;
   z-index: 5;
-}
-
-.editor-container {
-  height: 100px;
-  border: 1px solid #ff1c1c;
 }
 
 .markdown-preview {

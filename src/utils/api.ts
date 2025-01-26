@@ -438,6 +438,24 @@ class GithubApi {
     }
   };
 
+  getFileCommitHistory = async (path: string) => {
+    // 获取文件的提交历史
+    try {
+      const response: RestEndpointMethodTypes["repos"]["listCommits"]["response"] =
+        await (this.octokit as Octokit).repos.listCommits({
+          owner: this.owner as string,
+          repo: this.repo as string,
+          path,
+          per_page: 100,
+        });
+
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching file commit history:", error);
+      throw error;
+    }
+  };
+
   // 查找 Gist
   private findGist = async (): Promise<string | null> => {
     if (!this.octokit) {
