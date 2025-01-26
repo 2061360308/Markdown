@@ -3,7 +3,13 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { SlVueTreeNext } from "sl-vue-tree-next";
 import "sl-vue-tree-next/sl-vue-tree-next-dark.css";
 import { ref, onMounted, nextTick, Ref } from "vue";
-import { ElSelect, ElOption, ElMessage, ElMessageBox } from "element-plus";
+import {
+  ElSelect,
+  ElOption,
+  ElMessage,
+  ElMessageBox,
+  ElNotification,
+} from "element-plus";
 
 import {
   ContextMenu,
@@ -361,28 +367,55 @@ const deleteFile = (e: any) => {
   // Todo
   if (
     current_clicked_node &&
-    current_clicked_node?.data?.posititon === "remote"
+    current_clicked_node?.data?.position === "remote"
   ) {
-    ElMessageBox.confirm("将立即执行git提交，确定删除远程文件吗？", "Warning", {
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-      type: "warning",
-    })
+    ElMessageBox.confirm(
+      `将立即执行git提交，确定删除远程文件吗？`,
+      `Warning - 删除远程${current_clicked_node.title}文件`,
+      {
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    )
       .then(() => {
         let message = "Delete : " + (current_clicked_node?.data?.path ?? "");
         let files = [
           { path: current_clicked_node?.data?.path ?? "", content: null },
         ];
         loading.value = true;
-        api.commitChanges(files, message).then((res) => {
-          console.log("deleteFile", res);
-          ElMessage({
-            type: "success",
-            message: "文件已删除! 若未更新请稍后刷新页面",
+        api
+          .commitChanges(files, message)
+          .then((res) => {
+            console.log("deleteFile", res);
+            ElMessage({
+              type: "success",
+              message: "文件已删除! 若未更新请稍后刷新页面",
+            });
+            loading.value = false;
+            updateTree();
+          })
+          .catch((error) => {
+            if (error.message.includes("Update is not a fast forward")) {
+              ElNotification({
+                title: "Error",
+                message:
+                  "删除失败，稍后再试。\n 错误原因：由于远程仓库内容更新有延时，请不要频繁操作",
+                type: "error",
+              });
+              loading.value = false;
+              updateTree();
+              return;
+            }
+            console.log("deleteFile", e);
+            ElNotification({
+              title: "Error",
+              message: "删除失败，稍后再试。未知错误：" + error.message,
+              type: "error",
+            });
+            loading.value = false;
+            updateTree();
           });
-          loading.value = false;
-          updateTree();
-        });
       })
       .catch((e) => {
         console.log("deleteFile", e);
