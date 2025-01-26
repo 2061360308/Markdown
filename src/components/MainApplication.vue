@@ -40,7 +40,7 @@ onMounted(async () => {
       settingsStore.settings["图床配置"].endpoint,
       settingsStore.settings["图床配置"].region,
       settingsStore.settings["图床配置"].accessKeyId,
-      settingsStore.settings["图床配置"].secretAccessKey,
+      settingsStore.settings["图床配置"].secretAccessKey
     );
   }
 });
@@ -98,6 +98,23 @@ const handleMenuSelect = (index: string) => {
       break;
   }
 };
+
+interface LaunchParams {
+  files: FileSystemFileHandle[];
+}
+
+if ("launchQueue" in window && "files" in (window as any).LaunchParams.prototype) {
+  const launchQueue = (window as any).launchQueue;
+  launchQueue.setConsumer(async (launchParams: { files: string | any[]; }) => {
+    // Nothing to do when the queue is empty.
+    if (!launchParams.files.length) {
+      return;
+    }
+    for (const fileHandle of launchParams.files) {
+      tabsStore.openNativeFile(fileHandle);
+    }
+  });
+}
 </script>
 
 <template>

@@ -29,6 +29,9 @@ const eventStore = useEventStore();
 // 文章标题
 const fileName = ref("");
 
+// 如果是native模式，文件句柄
+const fileHandle: Ref<FileSystemFileHandle | null> = ref(null);
+
 const loading = ref(false);
 
 const frontMatterString: Ref<string> = ref(""); // frontMatter 解析出来的对象
@@ -48,6 +51,11 @@ const props = defineProps({
   repo: {
     type: String,
     required: true,
+  },
+  // 是否用户本机文件
+  native: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -242,17 +250,34 @@ const openFile = async (path: string) => {
 
   console.log("openFile", path, repoName.value);
 
-  fs.get(path, repoName.value).then((content) => {
-    console.log("openFile content", content);
-    // 分离 frontMatter 和 content
-    let result = splitFrontMatter(content);
+  let content = "";
 
-    frontMatterString.value = result.yamlContent; // 设置 frontMatter 字符串内容
-    // 设置正文内容到编辑器中
-    if (vditorInstance) {
-      vditorInstance.setValue(result.content, true);
+  if (props.native) {
+    // 加载句柄
+    fileHandle.value = await tabsStore.tabs.find(
+      (item) => item.id === props.editor
+    )?.data.fileHandle;
+
+    if (!fileHandle.value) {
+      return;
     }
-  });
+
+    // 读取文件内容
+    const file = await fileHandle.value.getFile();
+    content = await file.text();
+  } else {
+    content = await fs.get(path, repoName.value);
+  }
+
+  console.log("openFile content", content);
+  // 分离 frontMatter 和 content
+  let result = splitFrontMatter(content);
+
+  frontMatterString.value = result.yamlContent; // 设置 frontMatter 字符串内容
+  // 设置正文内容到编辑器中
+  if (vditorInstance) {
+    vditorInstance.setValue(result.content, true);
+  }
 };
 
 const getContent = () => {
@@ -264,19 +289,35 @@ const getContent = () => {
   return frontMatterString.value + content;
 };
 
-const saveFile = () => {
+const saveFile = async () => {
   console.log("saveFile");
   const file_path = props.path;
   const file_content = getContent();
   // console.log("saveFile file_content", file_content);
   let eventBus: EventBus = new EventBus(EventBusType.FileSaved);
-  fs.write(file_path, file_content, repoName.value).then(() => {
-    eventBus.emit();
-    ElMessage({
-      message: "文章保存成功",
-      grouping: true,
-      type: "success",
-    });
+
+  if (props.native) {
+    // 本地文件
+    if (!fileHandle.value) {
+      throw new Error("找不到文件句柄");
+    }
+
+    // 请求写入权限
+    const writable = await fileHandle.value.createWritable();
+    // 写入内容
+    await writable.write(file_content);
+    // 关闭写入流
+    await writable.close();
+  } else {
+    // 写入文件
+    await fs.write(file_path, file_content, repoName.value);
+  }
+
+  eventBus.emit();
+  ElMessage({
+    message: "文章保存成功",
+    grouping: true,
+    type: "success",
   });
 
   isAllSaved.value = true;

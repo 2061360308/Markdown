@@ -8,7 +8,7 @@ import vueDevTools from "vite-plugin-vue-devtools";
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
-import { version } from './package.json';
+import { version } from "./package.json";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -38,21 +38,29 @@ export default defineConfig({
             type: "image/png",
           },
           {
-            src: 'img/icons/icon-144x144.png',
-            sizes: '144x144',
-            type: 'image/png'
+            src: "img/icons/icon-144x144.png",
+            sizes: "144x144",
+            type: "image/png",
           },
           {
-            src: 'img/icons/icon-256x256.png',
-            sizes: '256x256',
-            type: 'image/png'
+            src: "img/icons/icon-256x256.png",
+            sizes: "256x256",
+            type: "image/png",
+          },
+        ],
+        file_handlers: [
+          {
+            action: "/",
+            accept: {
+              "text/markdown": [".md"],
+            },
           },
         ],
       },
       injectManifest: {
         // 自定义 Service Worker 文件路径
-        swSrc: 'src/pwa/service-worker.js',
-        swDest: 'service-worker.js',
+        swSrc: "src/pwa/service-worker.js",
+        swDest: "service-worker.js",
       },
     }),
     vueDevTools(),

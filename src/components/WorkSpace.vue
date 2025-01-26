@@ -28,27 +28,29 @@ const truncateTitle = (title: any) => {
       <el-tab-pane
         v-for="item in tabsStore.tabs"
         :key="item.id"
-        :label="item.data.title"
         :name="item.id"
         class="tab-pane"
       >
         <template #label>
-          <font-awesome-icon
-            :icon="['fas', item.icon]"
-            style="padding-right: 2px"
-          />
-          <el-tooltip
-            class="box-item"
-            effect="dark"
-            :content="item.data.title"
-            placement="bottom-start"
-            >{{ truncateTitle(item.data.title) }}</el-tooltip
-          >
+          <span :class="{ 'panel-tab': true, native: item.data.native }">
+            <font-awesome-icon
+              :icon="['fas', item.icon]"
+              style="padding-right: 2px"
+            />
+            <el-tooltip
+              :class="{ 'panel-tab': true, native: item.data.native }"
+              effect="dark"
+              :content="item.data.title"
+              placement="bottom-start"
+              >{{ truncateTitle(item.data.title) }}</el-tooltip
+            >
+          </span>
         </template>
         <MdEditor
           :editor="item.id"
           :path="item.data.path"
           :repo="item.data.repo"
+          :native="item.data.native || false"
           v-if="item.type === tabsStore.TabType.MdFile"
         />
         <SettingsPanel
@@ -76,6 +78,10 @@ const truncateTitle = (title: any) => {
 .workspace {
   width: 100%;
   height: 100vh;
+}
+
+.panel-tab.native {
+  color: var(--el-color-success);
 }
 
 .el-tabs {
