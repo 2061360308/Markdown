@@ -451,6 +451,11 @@ const deleteFile = (e: any) => {
             type: "success",
             message: "文件已删除!",
           });
+
+          // 查看这个文件是否在打开的文件中，如果是，则关闭
+          tabsStore.tabs = tabsStore.tabs.filter(
+            (item) => item.data.path !== current_clicked_node.data.path
+          );
           updateTree();
         });
       })
