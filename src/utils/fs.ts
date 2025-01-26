@@ -21,12 +21,6 @@ class Fs {
 
   isExist = async (path: string, repo: string) => {
     // 文件是否存在
-    console.log("path", path, "repo", repo);
-    // const count = await this.db
-    //   .table("files")
-    //   .where({ path })
-    //   .filter((item) => item.repo === repo)
-    //   .count();
     const count = await this.db.table("files").where({ path, repo }).count();
     return count > 0;
   };
@@ -59,7 +53,6 @@ class Fs {
     //   .filter((item) => item.repo === repo)
     //   .first();
     let file = await this.db.table("files").where({ path, repo }).first();
-    console.log("file", file);
     return file.content;
   };
 

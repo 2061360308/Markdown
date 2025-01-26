@@ -2,8 +2,6 @@ import { Octokit } from "@octokit/rest";
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import { githubAppId } from "@/config";
 
-const DEBUG = true;
-
 export const checkToken = async (token: string): Promise<string | boolean> => {
   const octokit = new Octokit({
     auth: token,
@@ -12,9 +10,6 @@ export const checkToken = async (token: string): Promise<string | boolean> => {
   try {
     // 尝试获取用户信息
     const { data: user } = await octokit.rest.users.getAuthenticated();
-    // this.owner = user.login;
-    // console.log("User info:", this.owner, this.repo);
-    console.log("User info:", user);
     return user.login;
   } catch (error) {
     // tokenValid = false;
@@ -38,8 +33,6 @@ export const checkRepo = async (
       owner,
       repo,
     });
-
-    console.log("Repo info:", repo);
 
     // 检查仓库是否存在以及是否有权限操作
     return {
@@ -262,7 +255,6 @@ class GithubApi {
       });
 
       const branches = response.data;
-      console.log("Branches:", branches);
       return branches;
     } catch (error) {
       console.error("Error fetching branches:", error);
@@ -273,7 +265,6 @@ class GithubApi {
     RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]
   > => {
     // 获取仓库的文件目录树
-    console.log("getRepoTree", this.branch);
     try {
       if (!this.octokit) {
         throw new Error("Octokit is not initialized");
@@ -284,9 +275,6 @@ class GithubApi {
         tree_sha: this.branch as string,
         recursive: "true",
       });
-      if (DEBUG) {
-        console.log("response.data", response.data);
-      }
       return response.data;
     } catch (error) {
       console.error("Error fetching repo tree:", error);
@@ -393,7 +381,6 @@ class GithubApi {
             };
           } else {
             // 文件新增或更新
-            console.log("文件新增或更新", file.path);
             return {
               path: file.path,
               mode: "100644",
@@ -494,7 +481,6 @@ class GithubApi {
 
   // 上传设置（创建或更新 Gist）
   uploadSettings = async (content: string) => {
-    console.log("uploadSettings", content);
     if (!this.octokit) {
       throw new Error("Octokit is not initialized");
     }

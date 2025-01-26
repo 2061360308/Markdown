@@ -127,7 +127,6 @@ const changeRemember = (e: CheckboxValueType) => {
 
 const loginByToken = () => {
   localStorage.setItem("loginMethod", loginMethod.value);
-  console.log("loginByToken");
   if (!inputToken.value) {
     ElMessage.error("请输入Token");
     return;
@@ -158,7 +157,6 @@ const loginByGithub = async () => {
   await nextTick();
 
   const currentUrl = window.location.href;
-  console.log("loginByGithub");
   let url = `https://github.com/login/oauth/authorize?client_id=${githubAppClientId}&state=${encodeURIComponent(
     currentUrl
   )}`;

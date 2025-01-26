@@ -38,7 +38,6 @@ onMounted(async () => {
       settingsStore.settings["图床配置"].secretAccessKey
     );
   }
-  console.log('api', api);
 });
 
 // Menu enum

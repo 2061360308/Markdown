@@ -85,7 +85,6 @@ const createVditorInstance = () => {
 
   // 等待下一个 tick 确保组件已渲染
   nextTick(() => {
-    console.log("createVditorInstance", props.editor);
     vditorInstance = new Vditor(props.editor, {
       value:
         "# Hello Vditor!\n\n这是编辑器预设内容，如果你看到这段文字代表内容没有被正确显示！",
@@ -248,8 +247,6 @@ const openFile = async (path: string) => {
    * 由 createVditorInstance 创建完Vditor实例后调用
    *  */
 
-  console.log("openFile", path, repoName.value);
-
   let content = "";
 
   if (props.native) {
@@ -268,8 +265,6 @@ const openFile = async (path: string) => {
   } else {
     content = await fs.get(path, repoName.value);
   }
-
-  console.log("openFile content", content);
   // 分离 frontMatter 和 content
   let result = splitFrontMatter(content);
 
@@ -290,7 +285,6 @@ const getContent = () => {
 };
 
 const saveFile = async () => {
-  console.log("saveFile");
   const file_path = props.path;
   const file_content = getContent();
   // console.log("saveFile file_content", file_content);

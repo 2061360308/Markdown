@@ -42,7 +42,6 @@ async function checkAppInstallationForRepo(owner, repo) {
       }
     }
 
-    console.log(installed);
     return installed;
   } catch (error) {
     console.error("检查安装状态时出错:", error);
@@ -53,7 +52,6 @@ async function checkAppInstallationForRepo(owner, repo) {
 // 调用函数检查安装状态
 let reault = checkAppInstallationForRepo("2061360308", "2061360308.github.io"); // 替换为实际的仓库所有者和仓库名
 
-console.log(reault);
 // let install_id = '59741487';
 
 // const { data: repositories } = await octokit.rest.apps.listInstallationReposForAuthenticatedUser({

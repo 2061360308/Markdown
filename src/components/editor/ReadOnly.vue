@@ -73,8 +73,6 @@ const changeSha = (newSha: string) => {
   sha.value = newSha;
   showHistoryDrawer.value = false;
 
-  console.log("changeSha", newSha);
-
   if (newSha) {
     api.getFileContent(props.path, newSha).then((res) => {
       if (res && codemirrorEditor.value) {

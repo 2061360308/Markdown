@@ -143,17 +143,12 @@ const updataBranchesOptions = async () => {
 
   branches.forEach(
     (branch: { name: string; commit: { sha: string; url: string } }) => {
-      console.log("branch", branch.name);
       (settingsStore.selectInputOptions.repoBranch as unknown as string[]).push(
         branch.name
       );
     }
   );
 
-  console.log(
-    "updataBranchesOptions",
-    settingsStore.selectInputOptions.repoBranch
-  );
 };
 
 const updateRepo = async () => {

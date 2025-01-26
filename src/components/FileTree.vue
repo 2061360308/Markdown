@@ -387,7 +387,6 @@ const deleteFile = (e: any) => {
         api
           .commitChanges(files, message)
           .then((res) => {
-            console.log("deleteFile", res);
             ElMessage({
               type: "success",
               message: "文件已删除! 若未更新请稍后刷新页面",
@@ -396,6 +395,7 @@ const deleteFile = (e: any) => {
             updateTree();
           })
           .catch((error) => {
+            console.error("deleteFile", error);
             if (error.message.includes("Update is not a fast forward")) {
               ElNotification({
                 title: "Error",
@@ -407,7 +407,6 @@ const deleteFile = (e: any) => {
               updateTree();
               return;
             }
-            console.log("deleteFile", e);
             ElNotification({
               title: "Error",
               message: "删除失败，稍后再试。未知错误：" + error.message,
@@ -418,7 +417,7 @@ const deleteFile = (e: any) => {
           });
       })
       .catch((e) => {
-        console.log("deleteFile", e);
+        console.error("deleteFile", e);
         ElMessage({
           type: "info",
           message: "已取消删除",
@@ -446,7 +445,6 @@ const deleteFile = (e: any) => {
         }
 
         fs.delete(current_clicked_node.data.path, _repoName).then((res) => {
-          console.log("deleteFile", res);
           ElMessage({
             type: "success",
             message: "文件已删除!",
@@ -460,7 +458,7 @@ const deleteFile = (e: any) => {
         });
       })
       .catch((e) => {
-        console.log("deleteFile", e);
+        console.error("deleteFile", e);
         ElMessage({
           type: "info",
           message: "已取消删除",
@@ -521,8 +519,6 @@ const createFile = () => {
     ElMessage.error("文件路径不合法");
     return;
   }
-
-  console.log("createFile", path);
 
   // 如果是文章，且没有后缀名，则添加后缀名
   if (createFileValue.value.post && !path.endsWith(".md")) {

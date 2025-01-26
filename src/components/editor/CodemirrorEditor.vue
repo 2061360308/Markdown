@@ -141,7 +141,6 @@ const markdwonHighlightStyle = HighlightStyle.define([
 const updateListener = EditorView.updateListener.of((update) => {
   if (update.docChanged) {
     emits("change");
-    console.log("Editor content changed");
   }
 });
 

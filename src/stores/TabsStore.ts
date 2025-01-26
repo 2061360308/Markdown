@@ -68,7 +68,6 @@ export const useTabsStore = defineStore("tabs", () => {
   };
 
   const openFile = (path: string, repo: string) => {
-    console.log("openFile", path, repo);
     // 防止重复打开
     for (let tab of tabs.value) {
       if (tab.data.path === path) {
@@ -114,8 +113,6 @@ export const useTabsStore = defineStore("tabs", () => {
       title,
       repo,
     };
-
-    console.log("data", data);
 
     // 获取后缀
     const ext = path.split(".").pop()?.toLowerCase();
@@ -189,8 +186,6 @@ export const useTabsStore = defineStore("tabs", () => {
     }
 
     let repo = "instone.remote";
-
-    console.log("title", title.value);
 
     let data = {
       path,
