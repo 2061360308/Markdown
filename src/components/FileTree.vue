@@ -287,6 +287,7 @@ const nodeSelected = (selectedNodes: string | any[]) => {
     let path = node.data.path;
     if (selectTreeType.value === "remote") {
       console.log("remote只读");
+      tabsStore.openRemoteFile(path);
     } else if (selectTreeType.value === "local") {
       console.log("local", localTreeRepoName.value);
       tabsStore.openFile(path, localTreeRepoName.value);

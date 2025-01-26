@@ -57,6 +57,9 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 将限制增加到 5 MiB
+      },
       injectManifest: {
         // 自定义 Service Worker 文件路径
         swSrc: "src/pwa/service-worker.js",

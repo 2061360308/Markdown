@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AboutApp: typeof import('./src/components/AboutApp.vue')['default']
+    CodemirrorEditor: typeof import('./src/components/editor/CodemirrorEditor.vue')['default']
     DiffManager: typeof import('./src/components/DiffManager.vue')['default']
     EditingManager: typeof import('./src/components/EditingManager.vue')['default']
     ElAnchor: typeof import('element-plus/es')['ElAnchor']
@@ -38,6 +39,7 @@ declare module 'vue' {
     LoginManager: typeof import('./src/components/LoginManager.vue')['default']
     MainApplication: typeof import('./src/components/MainApplication.vue')['default']
     MdEditor: typeof import('./src/components/editor/MdEditor.vue')['default']
+    ReadOnly: typeof import('./src/components/editor/ReadOnly.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsPanel: typeof import('./src/components/SettingsPanel.vue')['default']

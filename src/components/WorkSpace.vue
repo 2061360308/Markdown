@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ElTabs, ElTabPane, TabPaneName } from "element-plus";
 import MdEditor from "./editor/MdEditor.vue";
+import ReadOnly from "./editor/ReadOnly.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import { useTabsStore } from "@/stores";
 
@@ -32,7 +33,7 @@ const truncateTitle = (title: any) => {
         class="tab-pane"
       >
         <template #label>
-          <span :class="{ 'panel-tab': true, native: item.data.native }">
+          <span :class="{ 'panel-tab': true, native: item.data.native, remote: item.data.remote }">
             <font-awesome-icon
               :icon="['fas', item.icon]"
               style="padding-right: 2px"
@@ -52,6 +53,10 @@ const truncateTitle = (title: any) => {
           :repo="item.data.repo"
           :native="item.data.native || false"
           v-if="item.type === tabsStore.TabType.MdFile"
+        />
+        <ReadOnly
+          :path="item.data.path"
+          v-else-if="item.type === tabsStore.TabType.RemoteFile"
         />
         <SettingsPanel
           v-else-if="item.type === tabsStore.TabType.SettingsPanel"
@@ -82,6 +87,10 @@ const truncateTitle = (title: any) => {
 
 .panel-tab.native {
   color: var(--el-color-success);
+}
+
+.panel-tab.remote {
+  color: var(--el-color-warning);
 }
 
 .el-tabs {

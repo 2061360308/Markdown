@@ -3,7 +3,8 @@
 @import "element-plus/dist/index.css";
 @import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
 
-*:not(.vditor):not(.vditor *) {
+/* 除编辑器外其余元素禁用选择 */
+*:not(.vditor):not(.vditor *):not(.codemirror-editor):not(.codemirror-editor *) {
   user-select: none;
 }
 

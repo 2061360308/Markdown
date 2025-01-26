@@ -17,6 +17,7 @@ export const useTabsStore = defineStore("tabs", () => {
   enum TabType {
     File = "file",
     MdFile = "mdFile",
+    RemoteFile = "remoteFile",
     SettingsPanel = "settings",
   }
 
@@ -166,6 +167,43 @@ export const useTabsStore = defineStore("tabs", () => {
     );
   };
 
+  const openRemoteFile = async (path: string) => {
+    // 打开远程的文件，远程文件为只读模式
+
+    let title = ref((path.split("/").pop() || "") + " @remote");
+
+    // 防止重复打开
+    for (let tab of tabs.value) {
+      if (tab.data.remote) {
+        if (tab.data.path === path) {
+          setActiveTab(tab.id);
+          return;
+        }
+
+        // 有同名文件，展示完整路径
+        if (tab.data.title === title) {
+          title.value = path + " @remote";
+          tab.data.title = tab.data.path + " @remote";
+        }
+      }
+    }
+
+    let repo = "instone.remote";
+
+    console.log("title", title.value);
+
+    let data = {
+      path,
+      title,
+      repo,
+      remote: true,
+    };
+
+    // 获取后缀
+    const ext = path.split(".").pop()?.toLowerCase();
+    addTab(TabType.RemoteFile, ext === "md" ? "m" : "", data);
+  };
+
   const vditorInstance: Record<string, any> = {};
 
   return {
@@ -178,5 +216,6 @@ export const useTabsStore = defineStore("tabs", () => {
     setActiveTab,
     openFile,
     openNativeFile,
+    openRemoteFile,
   };
 });
