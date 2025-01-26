@@ -334,7 +334,7 @@ const logout = () => {
     <div class="slider-anchors">
       <div class="user-box" v-if="api.ready">
         <a :href="userInfo.html_url" target="_blank">
-          <el-image :src="userInfo.avatar_url" />
+          <el-image :src="userInfo.avatar_url+'&48'" />
           <div class="info">
             <div class="name">{{ userInfo.name }}</div>
             <div class="bio">{{ userInfo.bio }}</div>

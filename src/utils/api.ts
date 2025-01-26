@@ -456,6 +456,24 @@ class GithubApi {
     }
   };
 
+  searchFiles = async (keyword: string) => {
+
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
+
+    try {
+      const response = await this.octokit.search.code({
+        q: `${keyword} repo:${this.owner}/${this.repo}`,
+      });
+  
+      return response.data.items;
+    } catch (error) {
+      console.error("Error searching files:", error);
+      throw error;
+    }
+  };
+
   // 查找 Gist
   private findGist = async (): Promise<string | null> => {
     if (!this.octokit) {

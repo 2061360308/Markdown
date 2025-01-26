@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 
 import FileTree from "./FileTree.vue";
 import WorkSpace from "./WorkSpace.vue";
+import SearchManager from "./SearchManager.vue";
 import DiffManager from "./DiffManager.vue";
 import EditingManager from "./EditingManager.vue";
 import AboutApp from "./AboutApp.vue";
@@ -28,12 +29,6 @@ onMounted(async () => {
       router.push({ name: "login" });
     }
   } else {
-    console.log(settingsStore.settings["图床配置"].bucket);
-    console.log(settingsStore.settings["图床配置"].endpoint);
-    console.log(settingsStore.settings["图床配置"].region);
-    console.log(settingsStore.settings["图床配置"].accessKeyId);
-    console.log(settingsStore.settings["图床配置"].secretAccessKey);
-
     // 尝试初始化 图床配置
     imagehosting.init(
       settingsStore.settings["图床配置"].bucket,
@@ -43,6 +38,7 @@ onMounted(async () => {
       settingsStore.settings["图床配置"].secretAccessKey
     );
   }
+  console.log('api', api);
 });
 
 // Menu enum
@@ -163,6 +159,7 @@ if ("launchQueue" in window && "files" in (window as any).LaunchParams.prototype
       >
         <FileTree v-if="activeMenu == Menu.Files" />
         <EditingManager v-else-if="activeMenu == Menu.Editing" />
+        <SearchManager v-else-if="activeMenu == Menu.Search" />
         <DiffManager v-else-if="activeMenu == Menu.Changes" />
       </pane>
       <pane :size="100 - leftPaneSize">

@@ -331,6 +331,7 @@ const commit = async () => {
         >登录</el-button
       >
     </div>
+    <el-empty description="离线模式无法提交文件" v-if="!api.ready" />
   </div>
 </template>
 

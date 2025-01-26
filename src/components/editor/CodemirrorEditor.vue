@@ -32,7 +32,7 @@ import { lintKeymap } from "@codemirror/lint";
 
 const theme = {
   workspaceBgColor: "#ffffff",
-  workspaceBgColorLight: "#2f343f",
+  workspaceBgColorLight: "#dcdfe6",
   workspaceTextColor: "#24292e",
   gutterLineNumColor: "#5c6370",
   currentLineColor: "#d9d9d9",

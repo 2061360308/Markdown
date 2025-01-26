@@ -777,22 +777,6 @@ const createFile = () => {
   width: 150px;
 }
 
-.no-login-tip {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 10px;
-  padding: 10px 20px;
-  background-color: var(--el-color-primary-light-3);
-  color: var(--el-color-white);
-  border-radius: 5px;
-  white-space: nowrap;
-}
-
-.no-login-tip .el-button {
-  margin-left: 10px;
-}
-
 .file-tree-inner-box {
   overflow: auto;
   white-space: nowrap;

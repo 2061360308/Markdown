@@ -47,6 +47,7 @@ declare module 'vue' {
     ReadOnly: typeof import('./src/components/editor/ReadOnly.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchManager: typeof import('./src/components/SearchManager.vue')['default']
     SettingsPanel: typeof import('./src/components/SettingsPanel.vue')['default']
     StatusBar: typeof import('./src/components/StatusBar.vue')['default']
     WorkSpace: typeof import('./src/components/WorkSpace.vue')['default']
