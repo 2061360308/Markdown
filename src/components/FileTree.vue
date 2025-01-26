@@ -286,17 +286,14 @@ const nodeSelected = (selectedNodes: string | any[]) => {
   if (node.isLeaf) {
     let path = node.data.path;
     if (selectTreeType.value === "remote") {
-      console.log("remote只读");
       tabsStore.openRemoteFile(path);
     } else if (selectTreeType.value === "local") {
-      console.log("local", localTreeRepoName.value);
       tabsStore.openFile(path, localTreeRepoName.value);
     } else {
       if (node.data.position === "remote") {
         loading.value = true;
         // 从远程仓库下载文件
         api.getFileContent(path).then((res) => {
-          console.log("getFileContent", res);
           let content = res.decodedContent;
           fs.write(path, content, repoName.value).then((res) => {
             tabsStore.openFile(path, repoName.value); // 打开文件

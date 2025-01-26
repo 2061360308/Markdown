@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { ElButton, ElInput, ElMessage, ElMessageBox } from "element-plus";
+import { ElButton, ElInput, ElMessage, ElMessageBox, ElNotification } from "element-plus";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import CryptoJS from "crypto-js";
 import api from "@/utils/api";
@@ -20,8 +20,7 @@ enum FileAction {
   CREATE = "create",
   UPDATE = "update",
 }
-type File = [string, FileAction];
-type DiffFiles = File[];
+type DiffFiles = Array<[name: string, action: FileAction]>;
 
 type remoteTree = {
   sha: string;
@@ -38,7 +37,6 @@ type remoteTree = {
 };
 
 const diff_files = ref<DiffFiles>([]);
-
 onMounted(() => {
   if (api.ready) {
     refreshDiffData();
@@ -86,7 +84,7 @@ const refreshDiffData = async () => {
   for (const item of localItems) {
     if (remoteItems[item]) {
       let sha = await calculateFileSha(item);
-      console.log(sha, remoteItems[item]);
+
       if (sha !== remoteItems[item]) {
         files.push([item, FileAction.UPDATE]);
       }
@@ -122,7 +120,6 @@ const gender_commit_message = () => {
   };
 
   diff_files.value.forEach(([filePath, action]) => {
-    console.log(filePath, action);
     if (action === FileAction.CREATE) {
       changes.create.push(filePath);
     } else if (action === FileAction.UPDATE) {
@@ -195,7 +192,7 @@ const undo = (file: string | null = null) => {
       });
     })
     .catch((error) => {
-      console.log(error);
+      console.error(error);
       ElMessage({
         type: "info",
         message: "Delete canceled",
@@ -215,23 +212,39 @@ const commit = async () => {
 
   loading.value = true;
 
-  const files = [];
+  const files: Array<{ path: string; content: string }> = [];
   for (const file of diff_files.value) {
     const filePath = file[0];
     const fileContent = await fs.get(filePath, repoName.value);
     files.push({ path: filePath, content: fileContent });
   }
 
-  console.log(files);
+  api
+    .commitChanges(files, message)
+    .then(async (result) => {
+      ElMessage({
+        type: "success",
+        message: "Commit success",
+      });
 
-  api.commitChanges(files, message).then(() => {
-    ElMessage({
-      type: "success",
-      message: "Commit success",
+      for (const path of files) {
+        await fs.delete(path.path, repoName.value);
+      }
+
+      refreshDiffData();
+
+      // 更新本地的sha
+      loading.value = false;
+    })
+    .catch((error) => {
+      console.error(error);
+      ElNotification({
+        title: "Error",
+        message: "提交失败，发生错误！",
+        type: "error",
+      });
+      loading.value = false;
     });
-    refreshDiffData();
-    loading.value = false;
-  });
 };
 </script>
 
