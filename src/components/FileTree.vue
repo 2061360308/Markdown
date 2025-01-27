@@ -204,7 +204,7 @@ const transformTree = (tree: Array<treeItemObject>) => {
 };
 
 // 更新目录树
-const updateTree = async () => {
+const updateTree = async (noCache: boolean = false) => {
   loading.value = true;
   if (selectTreeType.value === "remote") {
     if (!api.ready) {
@@ -216,7 +216,7 @@ const updateTree = async () => {
       });
       return;
     }
-    api.getRepoTree().then((res) => {
+    api.getRepoTree(noCache).then((res) => {
       let remoteTree = formatRemteTree(
         res.tree.map((item) => ({
           mode: item.mode || "",
@@ -248,7 +248,7 @@ const updateTree = async () => {
     let loaclTree: Array<treeItemObject> = [];
     if (api.ready) {
       // 没有登录时不请求远程文件树
-      let remote = await api.getRepoTree();
+      let remote = await api.getRepoTree(noCache);
       remoteTree = formatRemteTree(
         remote.tree.map((item) => ({
           mode: item.mode || "",
@@ -355,7 +355,7 @@ const titleBarCreateClick = () => {
 };
 
 const titleBarUpdateClick = async () => {
-  await updateTree();
+  await updateTree(true); // 强制刷新
   ElMessage({
     type: "success",
     message: "文件树已更新",
@@ -392,7 +392,7 @@ const deleteFile = (e: any) => {
               message: "文件已删除! 若未更新请稍后刷新页面",
             });
             loading.value = false;
-            updateTree();
+            updateTree(true);
           })
           .catch((error) => {
             console.error("deleteFile", error);
@@ -403,17 +403,17 @@ const deleteFile = (e: any) => {
                   "删除失败，稍后再试。\n 错误原因：由于远程仓库内容更新有延时，请不要频繁操作",
                 type: "error",
               });
-              loading.value = false;
-              updateTree();
-              return;
+            } else {
+              ElNotification({
+                title: "Error",
+                message: "删除失败，稍后再试。未知错误：" + error.message,
+                type: "error",
+              });
             }
-            ElNotification({
-              title: "Error",
-              message: "删除失败，稍后再试。未知错误：" + error.message,
-              type: "error",
-            });
+
             loading.value = false;
-            updateTree();
+            updateTree(true);
+            return;
           });
       })
       .catch((e) => {

@@ -13,6 +13,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import api from "@/utils/api";
 import { useTabsStore, useSettingsStore } from "@/stores";
 import imagehosting from "@/utils/imagehosting";
+import { ElNotification } from "element-plus";
 
 const tabsStore = useTabsStore();
 const settingsStore = useSettingsStore();
@@ -22,11 +23,32 @@ const leftPaneSize = ref(20);
 const activeMenu = ref("files");
 const aboutDialogVisible = ref(false);
 
+const pingGitHub = async (): Promise<boolean> => {
+  try {
+    const response = await fetch("https://api.github.com/");
+    console.log("GitHub response:", response);
+    return response.ok;
+  } catch (error) {
+    console.error("Error pinging GitHub:", error);
+    return false;
+  }
+};
+
 onMounted(async () => {
   if (!api.ready) {
-    // 判断是否是跳过登录的情况
-    if (!localStorage.getItem("jumpLogin")) {
-      router.push({ name: "login" });
+    // 判断是否是跳过登录的情况(已经启用离线模式或之前没有登录过，没有loginMethod标识)
+    if (!localStorage.getItem("jumpLogin") && localStorage.getItem("loginMethod")) {
+      // 这里检查是否能够正常访问Github【只检查api.github.com】
+      if ((await pingGitHub())) {
+        router.push({ name: "login" });
+      } else {
+        ElNotification({
+          title: "Info",
+          message: "当前无法访问Github，已自动为您启用离线模式。",
+          type: "info",
+        });
+        localStorage.setItem("jumpLogin", "true");
+      }
     }
   } else {
     // 尝试初始化 图床配置
@@ -98,9 +120,12 @@ interface LaunchParams {
   files: FileSystemFileHandle[];
 }
 
-if ("launchQueue" in window && "files" in (window as any).LaunchParams.prototype) {
+if (
+  "launchQueue" in window &&
+  "files" in (window as any).LaunchParams.prototype
+) {
   const launchQueue = (window as any).launchQueue;
-  launchQueue.setConsumer(async (launchParams: { files: string | any[]; }) => {
+  launchQueue.setConsumer(async (launchParams: { files: string | any[] }) => {
     // Nothing to do when the queue is empty.
     if (!launchParams.files.length) {
       return;

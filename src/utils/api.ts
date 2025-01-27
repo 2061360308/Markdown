@@ -261,20 +261,32 @@ class GithubApi {
     }
   };
 
-  getRepoTree = async (): Promise<
-    RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]
-  > => {
+  getRepoTree = async (
+    noCache: boolean = false
+  ): Promise<RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]> => {
     // 获取仓库的文件目录树
     try {
       if (!this.octokit) {
         throw new Error("Octokit is not initialized");
       }
-      const response = await this.octokit.git.getTree({
-        owner: this.owner as string,
-        repo: this.repo as string,
-        tree_sha: this.branch as string,
-        recursive: "true",
-      });
+
+      // const response = await this.octokit.git.getTree({
+      //   owner: this.owner as string,
+      //   repo: this.repo as string,
+      //   tree_sha: this.branch as string,
+      //   recursive: "true",
+      // });
+
+      const response = await this.octokit.request(
+        `GET /repos/{owner}/{repo}/git/trees/{tree_sha}`,
+        {
+          owner: this.owner as string,
+          repo: this.repo as string,
+          tree_sha: this.branch as string,
+          timestamp: noCache ? new Date().getTime(): "",
+          recursive: "true",
+        }
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching repo tree:", error);
@@ -293,10 +305,13 @@ class GithubApi {
     return response.data.files;
   };
 
-  getFileContent = async (path: string, branch = "main") => {
+  getFileContent = async (path: string, branch = "") => {
     // 获取仓库具体文件的内容
 
     try {
+      if (branch === "") {
+        branch = this.branch as string;
+      }
       const response: RestEndpointMethodTypes["repos"]["getContent"]["response"] =
         await (this.octokit as Octokit).repos.getContent({
           owner: this.owner as string,
@@ -320,9 +335,12 @@ class GithubApi {
     }
   };
 
-  getFileLastCommitTime = async (path: string, branch = "main") => {
+  getFileLastCommitTime = async (path: string, branch = "") => {
     // 获取文件最后提交的时间
     try {
+      if (branch === "") {
+        branch = this.branch as string;
+      }
       const response: RestEndpointMethodTypes["repos"]["listCommits"]["response"] =
         await (this.octokit as Octokit).repos.listCommits({
           owner: this.owner as string,
@@ -346,16 +364,34 @@ class GithubApi {
   commitChanges = async (
     files: { path: string; content: string | null }[],
     message: string,
-    branch = "main"
+    branch = ""
   ) => {
     // 提交更改
+
+    if (!this.octokit) {
+      throw new Error("Octokit is not initialized");
+    }
+
     try {
-      // 获取当前分支的最新提交
-      const { data: refData } = await (this.octokit as Octokit).git.getRef({
+      if (branch === "") {
+        branch = this.branch as string;
+      }
+      // const { data: refData } = await (this.octokit as Octokit).git.getRef({
+      //   owner: this.owner as string,
+      //   repo: this.repo as string,
+      //   ref: `heads/${branch}`,
+      // });
+
+      /**
+       * 采用添加时间戳的方式来解决缓存问题，保证获取到最新的 ref 数据
+       */
+      const { data: refData } = await this.octokit.request(`GET /repos/{owner}/{repo}/git/refs/heads/{branch}`, {
         owner: this.owner as string,
         repo: this.repo as string,
-        ref: `heads/${branch}`,
+        branch: branch,
+        t: new Date().getTime()
       });
+
       const latestCommitSha = refData.object.sha;
 
       // 获取最新提交的树对象
@@ -444,7 +480,6 @@ class GithubApi {
   };
 
   searchFiles = async (keyword: string) => {
-
     if (!this.octokit) {
       throw new Error("Octokit is not initialized");
     }
@@ -453,7 +488,7 @@ class GithubApi {
       const response = await this.octokit.search.code({
         q: `${keyword} repo:${this.owner}/${this.repo}`,
       });
-  
+
       return response.data.items;
     } catch (error) {
       console.error("Error searching files:", error);
@@ -517,7 +552,7 @@ class GithubApi {
   };
 
   // 读取私密 Gist
-  getSettings = async (): Promise<string|null> => {
+  getSettings = async (): Promise<string | null> => {
     if (!this.octokit) {
       throw new Error("Octokit is not initialized");
     }
